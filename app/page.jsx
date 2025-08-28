@@ -25,20 +25,17 @@ const Home = () => {
               className="mx-auto max-w-3xl"
             >
               <h2 className="text-4xl font-bold">
-                Achieve Your Dream Fitness Goals
+                Nourishing Bodies & Sculpting Greatness
               </h2>
               <p className="mt-4 text-lg">
-                Transform your body and soul with the perfect blend of
-                personalized nutrition and energizing workouts, guided by your
-                friend and coach, AK. Together, let&apos;s sculpt the best
-                version of you!
+                Transform your health with NutriSculpt’s expert-led coaching—covering personal training, online fitness, posture correction, rehabilitation, recovery, and athletic performance. Train smarter, recover faster, and sculpt your best self.
               </p>
               <motion.a
                 href="#contact"
                 className="mt-6 inline-block rounded-lg bg-white px-6 py-3 font-bold text-blue-600 shadow-lg transition hover:bg-gray-200 dark:bg-gray-800 dark:text-blue-400 dark:hover:bg-gray-700"
                 whileHover={{ scale: 1.1 }}
               >
-                Get Started
+                Start Your Transformation
               </motion.a>
             </motion.div>
           </section>
@@ -56,22 +53,64 @@ const Home = () => {
               </h3>
               <div className="mt-12 grid gap-8 sm:grid-cols-2 md:grid-cols-3">
                 {[
-                  "Personal Training",
-                  "Group Classes",
-                  "Nutrition Coaching",
+                  {
+                    title: "Personal 1-1 Training",
+                    description:
+                      "Personalized one-on-one training sessions with expert guidance, form correction, and customized workout plans to maximize your results."
+                  },
+                  {
+                    title: "Virtual 1-1 Training",
+                    description:
+                      "Online personal training for clients in India and abroad—professional coaching anytime, anywhere, delivering results equal to in-person sessions."
+                  },
+                  {
+                    title: "Functional Movement Testing",
+                    description:
+                      "Comprehensive movement analysis with detailed report identifying imbalances, mobility issues, and injury prevention strategies."
+                  },
+                  {
+                    title: "Program Design (1-3 months)",
+                    description:
+                      "Custom workout programs with detailed weekly plans designed specifically for your goals, complete with progression tracking."
+                  },
+                  {
+                    title: "Posture Correction & Mobility Training",
+                    description:
+                      "Correct imbalances, relieve pain, and improve mobility with targeted exercises designed to restore posture, enhance movement, and prevent injuries."
+                  },
+                  {
+                    title: "Group Training",
+                    description:
+                      "Small group training sessions that combine motivation with personalized attention for an engaging and effective workout experience."
+                  },
+                  {
+                      title: "Rehabilitation & Recovery Programs",
+                      description:
+                        "Holistic programs blending rehabilitation and recovery to restore strength, enhance mobility, support healing, and prevent future injuries through corrective training."
+                  },
+                  {
+                    title: "Athletic & Sports Performance",
+                    description:
+                      "Sport-specific training programs to enhance performance, speed, agility, and power for competitive athletes and sports enthusiasts."
+                  },
+                  {
+                    title: "Senior Fitness Programs",
+                    description:
+                      "Specialized fitness programs for older adults focusing on balance, strength, mobility, and maintaining independence and quality of life."
+                  }
                 ].map((service, index) => (
                   <motion.div
-                    key={index}
+                    key={service.title}
                     initial={{ scale: 0.9, opacity: 0 }}
                     whileInView={{ scale: 1, opacity: 1 }}
                     transition={{ duration: 0.6, delay: index * 0.2 }}
                     className="rounded-lg bg-white p-6 text-center shadow-lg dark:bg-gray-800"
                   >
                     <h4 className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                      {service}
+                      {service.title}
                     </h4>
                     <p className="mt-4 text-gray-600 dark:text-gray-400">
-                      Experience {service.toLowerCase()} tailored to your needs.
+                      {service.description}
                     </p>
                   </motion.div>
                 ))}
