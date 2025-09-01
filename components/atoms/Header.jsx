@@ -88,6 +88,30 @@ const Header = ({ darkMode, toggleDarkMode }) => {
                   1RM Calculator
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/ideal-weight"
+                  className="hover:text-blue-600 dark:hover:text-blue-400"
+                >
+                  Ideal Weight
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/water-intake"
+                  className="hover:text-blue-600 dark:hover:text-blue-400"
+                >
+                  Water Intake
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/heart-rate"
+                  className="hover:text-blue-600 dark:hover:text-blue-400"
+                >
+                  Heart Rate Zones
+                </Link>
+              </li>
             </ul>
           </nav>
 
@@ -184,6 +208,33 @@ const Header = ({ darkMode, toggleDarkMode }) => {
                   className="block rounded px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
                   1RM Calculator
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/ideal-weight"
+                  onClick={closeMobile}
+                  className="block rounded px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Ideal Weight
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/water-intake"
+                  onClick={closeMobile}
+                  className="block rounded px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Water Intake
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/heart-rate"
+                  onClick={closeMobile}
+                  className="block rounded px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Heart Rate Zones
                 </Link>
               </li>
             </ul>
