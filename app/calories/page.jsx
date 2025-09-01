@@ -204,7 +204,7 @@ export default function CalorieCalculator() {
             <div className="flex gap-2">
               <div className="flex-1">
                 <InputField
-                  label="Weight"
+                  label={`Weight (${unitSystem === "metric" ? "kg" : "lbs"})`}
                   value={unitSystem === "metric" ? weight.kg : weight.lb}
                   onChange={(value) =>
                     handleWeightChange(
@@ -223,7 +223,7 @@ export default function CalorieCalculator() {
             {/* Height */}
             {unitSystem === "metric" ? (
               <InputField
-                label="Height"
+                label="Height(cm)"
                 value={height.cm}
                 onChange={(value) => handleHeightChange(value, "cm")}
                 type="number"
