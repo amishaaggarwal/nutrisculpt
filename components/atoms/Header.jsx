@@ -72,6 +72,22 @@ const Header = ({ darkMode, toggleDarkMode }) => {
                   Calorie Calculator
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/macros"
+                  className="hover:text-blue-600 dark:hover:text-blue-400"
+                >
+                  Macro Calculator
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/one-rm"
+                  className="hover:text-blue-600 dark:hover:text-blue-400"
+                >
+                  1RM Calculator
+                </Link>
+              </li>
             </ul>
           </nav>
 
@@ -141,6 +157,33 @@ const Header = ({ darkMode, toggleDarkMode }) => {
                   className="block rounded px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
                   BMI Calculator
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/calories"
+                  onClick={closeMobile}
+                  className="block rounded px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Calorie Calculator
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/macros"
+                  onClick={closeMobile}
+                  className="block rounded px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Macro Calculator
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/one-rm"
+                  onClick={closeMobile}
+                  className="block rounded px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  1RM Calculator
                 </Link>
               </li>
             </ul>
