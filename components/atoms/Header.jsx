@@ -64,6 +64,14 @@ const Header = ({ darkMode, toggleDarkMode }) => {
                   BMI Calculator
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/calories"
+                  className="hover:text-blue-600 dark:hover:text-blue-400"
+                >
+                  Calorie Calculator
+                </Link>
+              </li>
             </ul>
           </nav>
 
