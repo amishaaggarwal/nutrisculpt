@@ -8,7 +8,7 @@ const Home = () => {
     <>
       <main>
         {/* Hero Section */}
-        <section className="relative overflow-hidden bg-blue-600 py-20 text-center text-white dark:bg-blue-500">
+        <section className="relative overflow-hidden bg-blue-600 py-20 text-center text-white dark:bg-blue-700">
           <motion.div
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
