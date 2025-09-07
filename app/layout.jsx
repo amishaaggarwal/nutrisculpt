@@ -52,11 +52,15 @@ export default function RootLayout({ children }) {
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#2563eb" />
         <link rel="canonical" href="https://nutrisculpt.vercel.app" />
+        <meta
+          name="google-site-verification"
+          content={process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION}
+        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <StructuredData 
+        <StructuredData
           type="website"
           name="NutriSculpt - Expert Fitness Coaching by AK"
           description="Expert fitness coaching by AK with free calorie calculator, BMI calculator, and fitness tools. Personal training and nutrition guidance."
