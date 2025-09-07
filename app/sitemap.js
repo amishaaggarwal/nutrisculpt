@@ -1,51 +1,49 @@
 export default function sitemap() {
-  const baseUrl = 'https://nutrisculpt.vercel.app';
-  
   return [
     {
-      url: baseUrl,
+      url: 'https://nutrisculpt.vercel.app',
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 1,
     },
     {
-      url: `${baseUrl}/calories`,
+      url: 'https://nutrisculpt.vercel.app/calories',
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/bmi`,
+      url: 'https://nutrisculpt.vercel.app/bmi',
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/macros`,
+      url: 'https://nutrisculpt.vercel.app/macros',
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/water-intake`,
+      url: 'https://nutrisculpt.vercel.app/water-intake',
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.7,
     },
     {
-      url: `${baseUrl}/ideal-weight`,
+      url: 'https://nutrisculpt.vercel.app/ideal-weight',
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.7,
     },
     {
-      url: `${baseUrl}/heart-rate`,
+      url: 'https://nutrisculpt.vercel.app/heart-rate',
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.6,
     },
     {
-      url: `${baseUrl}/one-rm`,
+      url: 'https://nutrisculpt.vercel.app/one-rm',
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.6,
