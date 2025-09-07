@@ -491,7 +491,7 @@ export default function MacroCalculator() {
           Daily Meal Distribution (3 meals)
         </h3>
         <div className="grid gap-4 sm:grid-cols-3">
-          {["Breakfast", "Lunch", "Dinner"].map((meal, index) => (
+          {["Breakfast", "Lunch", "Dinner"].map((meal) => (
             <div key={meal} className="rounded-lg bg-gray-50 p-4 dark:bg-gray-700/50">
               <h4 className="mb-3 text-center font-semibold">{meal}</h4>
               <div className="space-y-2 text-sm">

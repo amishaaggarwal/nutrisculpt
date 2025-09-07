@@ -1,0 +1,18 @@
+{
+  "name": "NutriSculpt - AK's Fitness Coaching & Free Calculators",
+  "short_name": "NutriSculpt",
+  "description": "Expert fitness coaching by AK with free calorie calculator, BMI calculator, and fitness tools. Personal training and nutrition guidance.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["health", "fitness", "lifestyle", "education"],
+  "lang": "en"
+}

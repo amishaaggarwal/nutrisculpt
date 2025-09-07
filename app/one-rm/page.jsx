@@ -80,7 +80,7 @@ export default function OneRMCalculator() {
           kg: round(result, 1),
           lb: round(conversions.kgToLb(result), 1),
         };
-      } catch (error) {
+      } catch {
         results[formula] = { kg: 0, lb: 0 };
       }
     });
