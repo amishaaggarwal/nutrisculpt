@@ -35,8 +35,8 @@ const ShareButton = ({
     try {
       const imageBlob = await onGenerateImage();
       
-      if (platform === 'native' && navigator.share && navigator.canShare) {
-        // Check if we can share files
+      if (platform === 'native' && navigator.share) {
+        // Use native sharing when available
         const sharePayload = {
           title: shareData.title,
           text: shareData.text,
@@ -44,7 +44,7 @@ const ShareButton = ({
         };
 
         // Try to share with image if supported
-        if (imageBlob && navigator.canShare({ files: [new File([imageBlob], 'result.png', { type: 'image/png' })] })) {
+        if (imageBlob && navigator.canShare && navigator.canShare({ files: [new File([imageBlob], 'result.png', { type: 'image/png' })] })) {
           sharePayload.files = [new File([imageBlob], 'result.png', { type: 'image/png' })];
         }
 
@@ -96,9 +96,11 @@ const ShareButton = ({
         break;
         
       case 'instagram':
+        downloadImage(imageBlob, 'Image downloaded! Open Instagram and post to your story or feed.');
+        break;
+        
       case 'snapchat':
-        // For Instagram and Snapchat, download the image with instructions
-        downloadImage(imageBlob, `Share this image on ${platform.charAt(0).toUpperCase() + platform.slice(1)}!`);
+        downloadImage(imageBlob, 'Image downloaded! Open Snapchat and add to your story or send to friends.');
         break;
         
       case 'copy':
@@ -146,15 +148,17 @@ const ShareButton = ({
     }
   };
 
+  const hasNativeShare = typeof navigator !== 'undefined' && navigator.share;
+  
   const shareOptions = [
-    { id: 'native', label: 'Share', icon: faShare, color: 'text-blue-600' },
+    ...(hasNativeShare ? [{ id: 'native', label: 'Share', icon: faShare, color: 'text-blue-600' }] : []),
     { id: 'pinterest', label: 'Pinterest', icon: faPinterestBrand, color: 'text-red-600' },
     { id: 'facebook', label: 'Facebook', icon: faFacebookF, color: 'text-blue-600' },
     { id: 'whatsapp', label: 'WhatsApp', icon: faWhatsappBrand, color: 'text-green-600' },
     { id: 'instagram', label: 'Instagram', icon: faInstagramBrand, color: 'text-pink-600' },
     { id: 'snapchat', label: 'Snapchat', icon: faSnapchatGhost, color: 'text-yellow-400' },
     { id: 'copy', label: copySuccess ? 'Copied!' : 'Copy Link', icon: faCopy, color: 'text-gray-600' },
-    { id: 'download', label: 'Download', icon: faDownload, color: 'text-gray-600' }
+    { id: 'download', label: 'Download Image', icon: faDownload, color: 'text-gray-600' }
   ];
 
   const getButtonClasses = () => {

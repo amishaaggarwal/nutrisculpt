@@ -32,6 +32,7 @@ const ShareableResultCard = forwardRef(({
   return (
     <div 
       ref={ref}
+      data-shareable-card
       className="w-[600px] h-[600px] bg-gradient-to-br from-white to-gray-50 p-8 relative overflow-hidden"
       style={{ 
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif'

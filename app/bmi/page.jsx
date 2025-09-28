@@ -5,6 +5,9 @@ import InputField from "@/components/atoms/InputField";
 import React, { useMemo, useState } from "react";
 import BMICategories from "@/components/pages/bmi/BMICategories";
 import UnitToggle from "@/components/pages/bmi/UnitToggle";
+import ShareButton from "@/components/atoms/ShareButton";
+import ShareableResultCard from "@/components/atoms/ShareableResultCard";
+import { useShareableImage } from "@/hooks/useShareableImage";
 
 // Utility functions
 const round = (value, digits = 1) => {
@@ -60,6 +63,9 @@ export default function BmiCalculator() {
   const [weight, setWeight] = useState({ kg: 70, lb: 154.3 });
   const [height, setHeight] = useState({ cm: 170, ft: 5, in: 7 });
 
+  // Share functionality
+  const { shareableCardRef, generateImage, generateShareData, validateResultForPrivacy } = useShareableImage('bmi');
+
   // Weight handlers
   const handleWeightChange = (value, unit) => {
     if (unit === "kg") {
@@ -93,6 +99,27 @@ export default function BmiCalculator() {
     height.cm,
     unitSystem === "metric"
   );
+
+  // Prepare share data for BMI results
+  const shareResult = useMemo(() => {
+    if (!isFinite(bmi) || bmi <= 0) return null;
+    
+    return validateResultForPrivacy({
+      value: round(bmi, 1),
+      category: label,
+      healthyRange: healthyWeightRange
+    }, ['weight', 'height']); // Exclude sensitive input data
+  }, [bmi, label, healthyWeightRange, validateResultForPrivacy]);
+
+  const shareData = useMemo(() => {
+    if (!shareResult) return null;
+    return generateShareData(shareResult);
+  }, [shareResult, generateShareData]);
+
+  const handleGenerateImage = async () => {
+    if (!shareResult) throw new Error('No results to share');
+    return await generateImage();
+  };
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
@@ -193,6 +220,17 @@ export default function BmiCalculator() {
                 {healthyWeightRange}
               </p>
             </div>
+
+            {/* Share Button */}
+            {shareResult && shareData && (
+              <div className="mt-6 text-center">
+                <ShareButton
+                  onGenerateImage={handleGenerateImage}
+                  shareData={shareData}
+                  className="w-full"
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -202,6 +240,21 @@ export default function BmiCalculator() {
           <BMICategories />
         </div>
       </div>
+
+      {/* Hidden Shareable Card for Image Generation */}
+      {shareResult && (
+        <div className="fixed -top-[9999px] -left-[9999px] pointer-events-none">
+          <ShareableResultCard
+            ref={shareableCardRef}
+            calculatorType="bmi"
+            result={{
+              value: shareResult.value,
+              category: shareResult.category
+            }}
+            subtitle={`Healthy range: ${shareResult.healthyRange}`}
+          />
+        </div>
+      )}
     </div>
   );
 }
