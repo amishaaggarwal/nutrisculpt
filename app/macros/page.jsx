@@ -5,6 +5,9 @@ import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import InputField from "@/components/atoms/InputField";
 import UnitToggle from "@/components/pages/bmi/UnitToggle";
+import ShareButton from "@/components/atoms/ShareButton";
+import ShareableResultCard from "@/components/atoms/ShareableResultCard";
+import { useShareableImage } from "@/hooks/useShareableImage";
 
 // Utility functions
 const round = (value, digits = 0) => {
@@ -71,6 +74,9 @@ export default function MacroCalculator() {
   // Store both metric and imperial values
   const [weight, setWeight] = useState({ kg: 70, lb: 154.3 });
   const [height, setHeight] = useState({ cm: 170, ft: 5, in: 7 });
+
+  // Share functionality
+  const { shareableCardRef, generateImage, generateShareData, validateResultForPrivacy } = useShareableImage('macros');
 
   // Weight handlers
   const handleWeightChange = (value, unit) => {
@@ -141,6 +147,29 @@ export default function MacroCalculator() {
   };
 
   const totalPercentage = currentMacros.protein + currentMacros.carbs + currentMacros.fat;
+
+  // Prepare share data for macro results
+  const shareResult = useMemo(() => {
+    if (!macroBreakdown || totalPercentage !== 100) return null;
+    
+    return validateResultForPrivacy({
+      protein: macroBreakdown.protein.grams,
+      carbs: macroBreakdown.carbs.grams,
+      fat: macroBreakdown.fat.grams,
+      totalCalories: useCalculatedCalories ? calculatedCalories : calories,
+      preset: selectedPreset !== 'Custom' ? selectedPreset : 'Custom Split'
+    }, ['weight', 'height', 'age', 'gender', 'activityLevel']); // Exclude sensitive input data
+  }, [macroBreakdown, totalPercentage, useCalculatedCalories, calculatedCalories, calories, selectedPreset, validateResultForPrivacy]);
+
+  const shareData = useMemo(() => {
+    if (!shareResult) return null;
+    return generateShareData(shareResult);
+  }, [shareResult, generateShareData]);
+
+  const handleGenerateImage = async () => {
+    if (!shareResult) throw new Error('No results to share');
+    return await generateImage();
+  };
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
@@ -480,6 +509,34 @@ export default function MacroCalculator() {
         </motion.div>
       </div>
 
+      {/* Share Section */}
+      {shareResult && shareData && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.65 }}
+          className="mt-8 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 p-6 dark:from-purple-900/20 dark:to-pink-900/20"
+        >
+          <div className="text-center">
+            <h3 className="mb-4 text-lg font-semibold">Your Macro Breakdown</h3>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {shareResult.protein}g protein • {shareResult.carbs}g carbs • {shareResult.fat}g fat
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                {shareResult.preset} • {shareResult.totalCalories} calories/day
+              </p>
+            </div>
+            <ShareButton
+              onGenerateImage={handleGenerateImage}
+              shareData={shareData}
+              variant="primary"
+              className="mx-auto"
+            />
+          </div>
+        </motion.div>
+      )}
+
       {/* Meal Distribution */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -568,6 +625,21 @@ export default function MacroCalculator() {
           </div>
         </div>
       </motion.div>
+
+      {/* Hidden Shareable Card for Image Generation */}
+      {shareResult && (
+        <div className="fixed -top-[9999px] -left-[9999px] pointer-events-none">
+          <ShareableResultCard
+            ref={shareableCardRef}
+            calculatorType="macros"
+            result={{
+              value: `${shareResult.protein}g • ${shareResult.carbs}g • ${shareResult.fat}g`,
+              category: shareResult.preset
+            }}
+            subtitle={`Protein • Carbs • Fat | ${shareResult.totalCalories} calories/day`}
+          />
+        </div>
+      )}
     </div>
   );
 }

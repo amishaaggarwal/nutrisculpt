@@ -5,6 +5,9 @@ import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import InputField from "@/components/atoms/InputField";
 import UnitToggle from "@/components/pages/bmi/UnitToggle";
+import ShareButton from "@/components/atoms/ShareButton";
+import ShareableResultCard from "@/components/atoms/ShareableResultCard";
+import { useShareableImage } from "@/hooks/useShareableImage";
 
 // Utility functions
 const round = (value, digits = 1) => {
@@ -57,6 +60,9 @@ export default function OneRMCalculator() {
   
   // Store both metric and imperial values
   const [weight, setWeight] = useState({ kg: 80, lb: 176.4 });
+
+  // Share functionality
+  const { shareableCardRef, generateImage, generateShareData, validateResultForPrivacy } = useShareableImage('one-rm');
 
   // Weight handlers
   const handleWeightChange = (value, unit) => {
@@ -116,6 +122,28 @@ export default function OneRMCalculator() {
       };
     });
   }, [oneRMResults.average]);
+
+  // Prepare share data for 1RM results
+  const shareResult = useMemo(() => {
+    if (!oneRMResults.average) return null;
+    
+    return validateResultForPrivacy({
+      value: oneRMResults.average[unitSystem === 'metric' ? 'kg' : 'lb'],
+      unit: unitSystem === 'metric' ? 'kg' : 'lbs',
+      exercise: exercise,
+      repsUsed: reps
+    }, ['weight']); // Exclude sensitive input data
+  }, [oneRMResults.average, unitSystem, exercise, reps, validateResultForPrivacy]);
+
+  const shareData = useMemo(() => {
+    if (!shareResult) return null;
+    return generateShareData(shareResult);
+  }, [shareResult, generateShareData]);
+
+  const handleGenerateImage = async () => {
+    if (!shareResult) throw new Error('No results to share');
+    return await generateImage();
+  };
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
@@ -226,6 +254,18 @@ export default function OneRMCalculator() {
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                 Average of all formulas
               </p>
+              
+              {/* Share Button */}
+              {shareResult && shareData && (
+                <div className="mt-4">
+                  <ShareButton
+                    onGenerateImage={handleGenerateImage}
+                    shareData={shareData}
+                    variant="secondary"
+                    className="mx-auto"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Individual Formula Results */}
@@ -343,6 +383,22 @@ export default function OneRMCalculator() {
           </p>
         </div>
       </motion.div>
+
+      {/* Hidden Shareable Card for Image Generation */}
+      {shareResult && (
+        <div className="fixed -top-[9999px] -left-[9999px] pointer-events-none">
+          <ShareableResultCard
+            ref={shareableCardRef}
+            calculatorType="one-rm"
+            result={{
+              value: shareResult.value,
+              unit: shareResult.unit,
+              category: shareResult.exercise
+            }}
+            subtitle={`1RM from ${shareResult.repsUsed} reps`}
+          />
+        </div>
+      )}
     </div>
   );
 }

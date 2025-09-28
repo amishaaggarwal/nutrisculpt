@@ -5,6 +5,9 @@ import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import InputField from "@/components/atoms/InputField";
 import UnitToggle from "@/components/pages/bmi/UnitToggle";
+import ShareButton from "@/components/atoms/ShareButton";
+import ShareableResultCard from "@/components/atoms/ShareableResultCard";
+import { useShareableImage } from "@/hooks/useShareableImage";
 
 // Utility functions
 const round = (value, digits = 1) => {
@@ -82,6 +85,9 @@ export default function IdealWeightCalculator() {
   // Store both metric and imperial values
   const [height, setHeight] = useState({ cm: 170, ft: 5, in: 7 });
 
+  // Share functionality
+  const { shareableCardRef, generateImage, generateShareData, validateResultForPrivacy } = useShareableImage('ideal-weight');
+
   // Height handlers
   const handleHeightChange = (value, unit) => {
     if (unit === "cm") {
@@ -153,6 +159,30 @@ export default function IdealWeightCalculator() {
       max: { kg: round(maxKg, 1), lb: round(conversions.kgToLb(maxKg), 1) },
     };
   }, [height.cm]);
+
+  // Prepare share data for ideal weight results
+  const shareResult = useMemo(() => {
+    if (!idealWeights.average || !healthyRange) return null;
+    
+    return validateResultForPrivacy({
+      value: idealWeights.average[unitSystem === 'metric' ? 'kg' : 'lb'],
+      unit: unitSystem === 'metric' ? 'kg' : 'lbs',
+      frameType: FRAME_TYPES.find(f => f.value === frameType)?.label || 'Medium Frame',
+      healthyRange: unitSystem === 'metric' 
+        ? `${healthyRange.min.kg}-${healthyRange.max.kg} kg`
+        : `${healthyRange.min.lb}-${healthyRange.max.lb} lbs`
+    }, ['height', 'age', 'gender']); // Exclude sensitive input data
+  }, [idealWeights.average, healthyRange, unitSystem, frameType, validateResultForPrivacy]);
+
+  const shareData = useMemo(() => {
+    if (!shareResult) return null;
+    return generateShareData(shareResult);
+  }, [shareResult, generateShareData]);
+
+  const handleGenerateImage = async () => {
+    if (!shareResult) throw new Error('No results to share');
+    return await generateImage();
+  };
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
@@ -312,6 +342,18 @@ export default function IdealWeightCalculator() {
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
               Average of all formulas
             </p>
+            
+            {/* Share Button */}
+            {shareResult && shareData && (
+              <div className="mt-4">
+                <ShareButton
+                  onGenerateImage={handleGenerateImage}
+                  shareData={shareData}
+                  variant="secondary"
+                  className="mx-auto"
+                />
+              </div>
+            )}
           </motion.div>
 
           {/* Individual Formula Results */}
@@ -404,6 +446,22 @@ export default function IdealWeightCalculator() {
           </div>
         </div>
       </motion.div>
+
+      {/* Hidden Shareable Card for Image Generation */}
+      {shareResult && (
+        <div className="fixed -top-[9999px] -left-[9999px] pointer-events-none">
+          <ShareableResultCard
+            ref={shareableCardRef}
+            calculatorType="ideal-weight"
+            result={{
+              value: shareResult.value,
+              unit: shareResult.unit,
+              category: shareResult.frameType
+            }}
+            subtitle={`Healthy range: ${shareResult.healthyRange}`}
+          />
+        </div>
+      )}
     </div>
   );
 }

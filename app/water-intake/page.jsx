@@ -5,6 +5,9 @@ import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import InputField from "@/components/atoms/InputField";
 import UnitToggle from "@/components/pages/bmi/UnitToggle";
+import ShareButton from "@/components/atoms/ShareButton";
+import ShareableResultCard from "@/components/atoms/ShareableResultCard";
+import { useShareableImage } from "@/hooks/useShareableImage";
 
 // Utility functions
 const round = (value, digits = 1) => {
@@ -57,6 +60,9 @@ export default function WaterIntakeCalculator() {
   const [isPregnant, setIsPregnant] = useState(false);
   const [isBreastfeeding, setIsBreastfeeding] = useState(false);
   const [selectedConditions, setSelectedConditions] = useState([]);
+
+  // Share functionality
+  const { shareableCardRef, generateImage, generateShareData, validateResultForPrivacy } = useShareableImage('water-intake');
 
   // Store both metric and imperial values
   const [weight, setWeight] = useState({ kg: 70, lb: 154.3 });
@@ -144,6 +150,28 @@ export default function WaterIntakeCalculator() {
       oz: round(conversions.literToOz(totalMl / 1000) / wakingHours, 1),
     };
   }, [waterIntake.ml]);
+
+  // Prepare share data for water intake results
+  const shareResult = useMemo(() => {
+    if (!waterIntake.liters || waterIntake.liters <= 0) return null;
+    
+    return validateResultForPrivacy({
+      value: waterIntake.liters,
+      unit: 'L/day',
+      alternativeUnits: `${waterIntake.ml}ml | ${waterIntake.oz}oz | ${waterIntake.cups} cups`,
+      hourlyGoal: `${hourlyIntake.ml}ml/hour`
+    }, ['weight', 'age', 'gender', 'activityLevel', 'climateCondition', 'selectedConditions', 'isPregnant', 'isBreastfeeding']); // Exclude sensitive input data
+  }, [waterIntake, hourlyIntake, validateResultForPrivacy]);
+
+  const shareData = useMemo(() => {
+    if (!shareResult) return null;
+    return generateShareData(shareResult);
+  }, [shareResult, generateShareData]);
+
+  const handleGenerateImage = async () => {
+    if (!shareResult) throw new Error('No results to share');
+    return await generateImage();
+  };
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
@@ -349,6 +377,18 @@ export default function WaterIntakeCalculator() {
               <p>{waterIntake.oz} fl oz</p>
               <p>{waterIntake.cups} cups</p>
             </div>
+            
+            {/* Share Button */}
+            {shareResult && shareData && (
+              <div className="mt-4">
+                <ShareButton
+                  onGenerateImage={handleGenerateImage}
+                  shareData={shareData}
+                  variant="secondary"
+                  className="w-full"
+                />
+              </div>
+            )}
           </div>
         </motion.div>
 
@@ -471,6 +511,21 @@ export default function WaterIntakeCalculator() {
           </div>
         </div>
       </motion.div>
+
+      {/* Hidden Shareable Card for Image Generation */}
+      {shareResult && (
+        <div className="fixed -top-[9999px] -left-[9999px] pointer-events-none">
+          <ShareableResultCard
+            ref={shareableCardRef}
+            calculatorType="water-intake"
+            result={{
+              value: shareResult.value,
+              unit: shareResult.unit
+            }}
+            subtitle={`${shareResult.alternativeUnits} | Goal: ${shareResult.hourlyGoal}`}
+          />
+        </div>
+      )}
     </div>
   );
 }

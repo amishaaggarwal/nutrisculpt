@@ -77,14 +77,8 @@ const ShareButton = ({
     
     switch (platform) {
       case 'pinterest':
-        if (imageBlob) {
-          // For Pinterest, we need to upload the image somewhere or use a data URL
-          const dataUrl = await blobToDataUrl(imageBlob);
-          const pinterestUrl = `https://pinterest.com/pin/create/button/?url=${encodedUrl}&description=${encodedText}&media=${encodeURIComponent(dataUrl)}`;
-          window.open(pinterestUrl, '_blank', 'width=750,height=750');
-        } else {
-          window.open(`https://pinterest.com/pin/create/button/?url=${encodedUrl}&description=${encodedText}`, '_blank');
-        }
+        // Pinterest doesn't reliably support data URLs, so just use the calculator URL
+        window.open(`https://pinterest.com/pin/create/button/?url=${encodedUrl}&description=${encodedText}`, '_blank', 'width=750,height=750');
         break;
         
       case 'facebook':
@@ -96,11 +90,11 @@ const ShareButton = ({
         break;
         
       case 'instagram':
-        downloadImage(imageBlob, 'Image downloaded! Open Instagram and post to your story or feed.');
+        downloadImage(imageBlob, 'Image saved! Open Instagram → New Post/Story → Select from Photos to share your result.');
         break;
         
       case 'snapchat':
-        downloadImage(imageBlob, 'Image downloaded! Open Snapchat and add to your story or send to friends.');
+        downloadImage(imageBlob, 'Image saved! Open Snapchat → Camera → Upload from Gallery to share your result.');
         break;
         
       case 'copy':

@@ -4,6 +4,9 @@
 import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import InputField from "@/components/atoms/InputField";
+import ShareButton from "@/components/atoms/ShareButton";
+import ShareableResultCard from "@/components/atoms/ShareableResultCard";
+import { useShareableImage } from "@/hooks/useShareableImage";
 
 // Utility functions
 const round = (value, digits = 0) => {
@@ -121,6 +124,9 @@ export default function HeartRateZoneCalculator() {
   const [selectedGoal, setSelectedGoal] = useState("General Fitness");
   const [gender, setGender] = useState("male");
 
+  // Share functionality
+  const { shareableCardRef, generateImage, generateShareData, validateResultForPrivacy } = useShareableImage('heart-rate');
+
   // Calculate predicted max HR
   const predictedMaxHR = useMemo(() => {
     const method = AGE_PREDICTION_METHODS[selectedMethod];
@@ -162,6 +168,31 @@ export default function HeartRateZoneCalculator() {
 
   // Get recommendation for selected goal
   const goalRecommendation = TRAINING_GOALS.find(goal => goal.goal === selectedGoal);
+
+  // Prepare share data for heart rate zones
+  const shareResult = useMemo(() => {
+    if (!hrZones || hrZones.length === 0 || !goalRecommendation) return null;
+    
+    const recommendedZones = hrZones.filter(zone => goalRecommendation.primaryZones.includes(zone.zone));
+    const zoneRanges = recommendedZones.map(zone => `Zone ${zone.zone}: ${zone.maxHR.min}-${zone.maxHR.max} bpm`).join(', ');
+    
+    return validateResultForPrivacy({
+      goal: selectedGoal,
+      zones: zoneRanges,
+      maxHR: effectiveMaxHR,
+      restingHR: restingHR
+    }, ['age', 'gender']); // Exclude sensitive input data
+  }, [hrZones, goalRecommendation, selectedGoal, effectiveMaxHR, restingHR, validateResultForPrivacy]);
+
+  const shareData = useMemo(() => {
+    if (!shareResult) return null;
+    return generateShareData(shareResult);
+  }, [shareResult, generateShareData]);
+
+  const handleGenerateImage = async () => {
+    if (!shareResult) throw new Error('No results to share');
+    return await generateImage();
+  };
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
@@ -420,6 +451,18 @@ export default function HeartRateZoneCalculator() {
                 {goalRecommendation.recommendation}
               </p>
             </div>
+            
+            {/* Share Button */}
+            {shareResult && shareData && (
+              <div className="mt-4">
+                <ShareButton
+                  onGenerateImage={handleGenerateImage}
+                  shareData={shareData}
+                  variant="primary"
+                  className="mx-auto"
+                />
+              </div>
+            )}
           </div>
         </motion.div>
       )}
@@ -467,6 +510,21 @@ export default function HeartRateZoneCalculator() {
           </div>
         </div>
       </motion.div>
+
+      {/* Hidden Shareable Card for Image Generation */}
+      {shareResult && (
+        <div className="fixed -top-[9999px] -left-[9999px] pointer-events-none">
+          <ShareableResultCard
+            ref={shareableCardRef}
+            calculatorType="heart-rate"
+            result={{
+              value: `${shareResult.maxHR} bpm`,
+              category: shareResult.goal
+            }}
+            subtitle={`Max HR | Resting: ${shareResult.restingHR} bpm`}
+          />
+        </div>
+      )}
     </div>
   );
 }
