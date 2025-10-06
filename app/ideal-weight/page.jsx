@@ -128,7 +128,7 @@ export default function IdealWeightCalculator() {
           kg: round(result, 1),
           lb: round(conversions.kgToLb(result), 1),
         };
-      } catch (error) {
+      } catch {
         results[formula] = { kg: 0, lb: 0 };
       }
     });
@@ -313,9 +313,9 @@ export default function IdealWeightCalculator() {
             <div className="rounded-lg bg-blue-50 p-4 text-sm text-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
               <p className="font-medium mb-2">How to determine your frame:</p>
               <ul className="space-y-1 text-xs">
-                <li>• <strong>Small:</strong> Wrist circumference less than 6.25" (men) or 5.5" (women)</li>
-                <li>• <strong>Medium:</strong> Wrist circumference 6.25-7" (men) or 5.5-6.25" (women)</li>
-                <li>• <strong>Large:</strong> Wrist circumference over 7" (men) or 6.25" (women)</li>
+                <li>• <strong>Small:</strong> Wrist circumference less than 6.25&quot; (men) or 5.5&quot; (women)</li>
+                <li>• <strong>Medium:</strong> Wrist circumference 6.25-7&quot; (men) or 5.5-6.25&quot; (women)</li>
+                <li>• <strong>Large:</strong> Wrist circumference over 7&quot; (men) or 6.25&quot; (women)</li>
               </ul>
             </div>
           </div>

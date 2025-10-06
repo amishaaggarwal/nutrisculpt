@@ -43,9 +43,9 @@ const Home = () => {
             transition={{ duration: 0.8 }}
             className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"
           >
-            <h3 className="text-center text-3xl font-bold text-gray-800 dark:text-gray-200">
+            <h2 className="text-center text-3xl font-bold text-gray-800 dark:text-gray-200">
               Our Services
-            </h3>
+            </h2>
             <div className="mt-12 grid gap-8 sm:grid-cols-2 md:grid-cols-3">
               {[
                 {

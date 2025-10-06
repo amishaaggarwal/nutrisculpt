@@ -485,7 +485,7 @@ export default function WaterIntakeCalculator() {
             </h4>
             <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
               <li>• Sip throughout the day</li>
-              <li>• Don't wait until you're thirsty</li>
+              <li>• Don&apos;t wait until you&apos;re thirsty</li>
               <li>• Set hourly reminders</li>
             </ul>
           </div>
