@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://nutrisculpt.vercel.app/sitemap.xml
