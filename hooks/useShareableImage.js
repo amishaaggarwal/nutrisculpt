@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 
 /**
  * Custom hook for generating shareable images from calculator results
@@ -14,47 +14,28 @@ export const useShareableImage = (calculatorType) => {
 
     const {
       quality = 0.95,
-      format = 'png',
-      scale = 2, // For high-resolution images
+      pixelRatio = 2, // For high-resolution images
       backgroundColor = '#ffffff'
     } = options;
 
     try {
-      // Use html2canvas to capture the component
-      const canvas = await html2canvas(shareableCardRef.current, {
-        scale,
-        useCORS: true,
-        allowTaint: true,
+      // Use html-to-image to capture the component
+      const dataUrl = await toPng(shareableCardRef.current, {
+        quality,
+        pixelRatio,
         backgroundColor,
         width: 600,
         height: 600,
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: 600,
-        windowHeight: 600,
-        onclone: (clonedDoc) => {
-          // Ensure fonts are loaded in the cloned document
-          const shareableCard = clonedDoc.querySelector('[data-shareable-card]');
-          if (shareableCard) {
-            shareableCard.style.fontFamily = 'Inter, system-ui, -apple-system, sans-serif';
-          }
+        style: {
+          fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
         }
       });
 
-      // Convert canvas to blob
-      return new Promise((resolve, reject) => {
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              resolve(blob);
-            } else {
-              reject(new Error('Failed to generate image blob'));
-            }
-          },
-          `image/${format}`,
-          quality
-        );
-      });
+      // Convert data URL to blob
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      
+      return blob;
     } catch (error) {
       console.error('Error generating shareable image:', error);
       throw error;
