@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import InputField from "@/components/atoms/InputField";
 import UnitToggle from "@/components/pages/bmi/UnitToggle";
 import ShareButton from "@/components/atoms/ShareButton";
-import ShareableResultCard from "@/components/atoms/ShareableResultCard";
+import ResultCard from "@/components/atoms/ResultCard";
 import { useShareableImage } from "@/hooks/useShareableImage";
 
 // Utility functions
@@ -129,7 +129,7 @@ export default function OneRMCalculator() {
     
     return validateResultForPrivacy({
       value: oneRMResults.average[unitSystem === 'metric' ? 'kg' : 'lb'],
-      unit: unitSystem === 'metric' ? 'kg' : 'lbs',
+      unit: unitSystem === 'metric' ? 'kg' : 'lb',
       exercise: exercise,
       repsUsed: reps
     }, ['weight']); // Exclude sensitive input data
@@ -255,17 +255,7 @@ export default function OneRMCalculator() {
                 Average of all formulas
               </p>
               
-              {/* Share Button */}
-              {shareResult && shareData && (
-                <div className="mt-4">
-                  <ShareButton
-                    onGenerateImage={handleGenerateImage}
-                    shareData={shareData}
-                    variant="secondary"
-                    className="mx-auto"
-                  />
-                </div>
-              )}
+
             </div>
 
             {/* Individual Formula Results */}
@@ -384,18 +374,50 @@ export default function OneRMCalculator() {
         </div>
       </motion.div>
 
+      {/* Enhanced Interactive Result Card Preview */}
+      {shareResult && (
+        <div className="mt-8">
+          <div className="text-center mb-6">
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              Your Shareable Result
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300">
+              Interactive fitness-inspired result card with animations
+            </p>
+          </div>
+          <div className="flex justify-center">
+            <div className="transform hover:scale-105 transition-transform duration-300">
+              <ResultCard
+                type="oneRm"
+                value={shareResult.value}
+                category={shareResult.exercise}
+                subtitle={`1RM from ${shareResult.repsUsed} reps`}
+                aspectRatio="square"
+                unit={shareResult.unit}
+              />
+            </div>
+          </div>
+          <div className="text-center mt-6">
+            <ShareButton
+              onGenerateImage={handleGenerateImage}
+              shareData={shareData}
+              variant="secondary"
+              className="mx-auto"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Hidden Shareable Card for Image Generation */}
       {shareResult && (
         <div className="fixed -top-[9999px] -left-[9999px] pointer-events-none">
-          <ShareableResultCard
+          <ResultCard
             ref={shareableCardRef}
-            calculatorType="one-rm"
-            result={{
-              value: shareResult.value,
-              unit: shareResult.unit,
-              category: shareResult.exercise
-            }}
+            type="oneRm"
+            value={shareResult.value}
+            category={shareResult.exercise}
             subtitle={`1RM from ${shareResult.repsUsed} reps`}
+            unit={shareResult.unit}
           />
         </div>
       )}

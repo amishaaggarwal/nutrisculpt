@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import InputField from "@/components/atoms/InputField";
 import UnitToggle from "@/components/pages/bmi/UnitToggle";
 import ShareButton from "@/components/atoms/ShareButton";
-import ShareableResultCard from "@/components/atoms/ShareableResultCard";
+import ResultCard from "@/components/atoms/ResultCard";
 import { useShareableImage } from "@/hooks/useShareableImage";
 
 // Utility functions
@@ -509,24 +509,29 @@ export default function MacroCalculator() {
         </motion.div>
       </div>
 
-      {/* Share Section */}
-      {shareResult && shareData && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.65 }}
-          className="mt-8 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 p-6 dark:from-purple-900/20 dark:to-pink-900/20"
-        >
-          <div className="text-center">
-            <h3 className="mb-4 text-lg font-semibold">Your Macro Breakdown</h3>
-            <div className="mb-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {shareResult.protein}g protein • {shareResult.carbs}g carbs • {shareResult.fat}g fat
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                {shareResult.preset} • {shareResult.totalCalories} calories/day
-              </p>
+      {/* Enhanced Interactive Result Card Preview */}
+      {shareResult && (
+        <div className="mt-8">
+          <div className="text-center mb-6">
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              Your Shareable Result
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300">
+              Interactive fitness-inspired result card with animations
+            </p>
+          </div>
+          <div className="flex justify-center">
+            <div className="transform hover:scale-105 transition-transform duration-300">
+              <ResultCard
+                type="macro"
+                value={`${shareResult.protein}g • ${shareResult.carbs}g • ${shareResult.fat}g`}
+                category={shareResult.preset}
+                subtitle={`Protein • Carbs • Fat | ${shareResult.totalCalories} calories/day`}
+                aspectRatio="square"
+              />
             </div>
+          </div>
+          <div className="text-center mt-6">
             <ShareButton
               onGenerateImage={handleGenerateImage}
               shareData={shareData}
@@ -534,7 +539,7 @@ export default function MacroCalculator() {
               className="mx-auto"
             />
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* Meal Distribution */}
@@ -629,13 +634,11 @@ export default function MacroCalculator() {
       {/* Hidden Shareable Card for Image Generation */}
       {shareResult && (
         <div className="fixed -top-[9999px] -left-[9999px] pointer-events-none">
-          <ShareableResultCard
+          <ResultCard
             ref={shareableCardRef}
-            calculatorType="macros"
-            result={{
-              value: `${shareResult.protein}g • ${shareResult.carbs}g • ${shareResult.fat}g`,
-              category: shareResult.preset
-            }}
+            type="macro"
+            value={`${shareResult.protein}g • ${shareResult.carbs}g • ${shareResult.fat}g`}
+            category={shareResult.preset}
             subtitle={`Protein • Carbs • Fat | ${shareResult.totalCalories} calories/day`}
           />
         </div>

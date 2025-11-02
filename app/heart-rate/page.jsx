@@ -5,7 +5,7 @@ import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import InputField from "@/components/atoms/InputField";
 import ShareButton from "@/components/atoms/ShareButton";
-import ShareableResultCard from "@/components/atoms/ShareableResultCard";
+import ResultCard from "@/components/atoms/ResultCard";
 import { useShareableImage } from "@/hooks/useShareableImage";
 
 // Utility functions
@@ -452,17 +452,7 @@ export default function HeartRateZoneCalculator() {
               </p>
             </div>
             
-            {/* Share Button */}
-            {shareResult && shareData && (
-              <div className="mt-4">
-                <ShareButton
-                  onGenerateImage={handleGenerateImage}
-                  shareData={shareData}
-                  variant="primary"
-                  className="mx-auto"
-                />
-              </div>
-            )}
+
           </div>
         </motion.div>
       )}
@@ -511,16 +501,47 @@ export default function HeartRateZoneCalculator() {
         </div>
       </motion.div>
 
+      {/* Enhanced Interactive Result Card Preview */}
+      {shareResult && (
+        <div className="mt-8">
+          <div className="text-center mb-6">
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              Your Shareable Result
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300">
+              Interactive fitness-inspired result card with animations
+            </p>
+          </div>
+          <div className="flex justify-center">
+            <div className="transform hover:scale-105 transition-transform duration-300">
+              <ResultCard
+                type="heart"
+                value={shareResult.maxHR}
+                category={shareResult.goal}
+                subtitle={`Max HR | Resting: ${shareResult.restingHR} bpm`}
+                aspectRatio="square"
+              />
+            </div>
+          </div>
+          <div className="text-center mt-6">
+            <ShareButton
+              onGenerateImage={handleGenerateImage}
+              shareData={shareData}
+              variant="primary"
+              className="mx-auto"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Hidden Shareable Card for Image Generation */}
       {shareResult && (
         <div className="fixed -top-[9999px] -left-[9999px] pointer-events-none">
-          <ShareableResultCard
+          <ResultCard
             ref={shareableCardRef}
-            calculatorType="heart-rate"
-            result={{
-              value: `${shareResult.maxHR} bpm`,
-              category: shareResult.goal
-            }}
+            type="heart"
+            value={shareResult.maxHR}
+            category={shareResult.goal}
             subtitle={`Max HR | Resting: ${shareResult.restingHR} bpm`}
           />
         </div>

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import InputField from "@/components/atoms/InputField";
 import UnitToggle from "@/components/pages/bmi/UnitToggle";
 import ShareButton from "@/components/atoms/ShareButton";
-import ShareableResultCard from "@/components/atoms/ShareableResultCard";
+import ResultCard from "@/components/atoms/ResultCard";
 import { useShareableImage } from "@/hooks/useShareableImage";
 
 // Utility functions
@@ -519,34 +519,48 @@ export default function CalorieCalculator() {
           </div>
         </motion.div>
 
-        {/* Share Section */}
-        {shareResult && shareData && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.9 }}
-            className="mt-8 text-center"
-          >
-            <ShareButton
-              onGenerateImage={handleGenerateImage}
-              shareData={shareData}
-              className="mx-auto"
-            />
-          </motion.div>
+        {/* Enhanced Interactive Result Card Preview */}
+        {shareResult && (
+          <div className="mt-8">
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                Your Shareable Result
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Interactive fitness-inspired result card with animations
+              </p>
+            </div>
+            <div className="flex justify-center">
+              <div className="transform hover:scale-105 transition-transform duration-300">
+                <ResultCard
+                  type="calorie"
+                  value={shareResult.value}
+                  category={shareResult.goal}
+                  subtitle={`BMR: ${shareResult.bmr} | TDEE: ${shareResult.tdee}`}
+                  aspectRatio="square"
+                />
+              </div>
+            </div>
+            <div className="text-center mt-6">
+              <ShareButton
+                onGenerateImage={handleGenerateImage}
+                shareData={shareData}
+                className="mx-auto"
+              />
+            </div>
+          </div>
         )}
       </div>
 
       {/* Hidden Shareable Card for Image Generation */}
       {shareResult && (
         <div className="fixed -top-[9999px] -left-[9999px] pointer-events-none">
-          <ShareableResultCard
+          <ResultCard
             ref={shareableCardRef}
-            calculatorType="calories"
-            result={{
-              value: shareResult.value,
-              unit: shareResult.unit,
-            }}
-            subtitle={`Goal: ${shareResult.goal} | BMR: ${shareResult.bmr} | TDEE: ${shareResult.tdee}`}
+            type="calorie"
+            value={shareResult.value}
+            category={shareResult.goal}
+            subtitle={`BMR: ${shareResult.bmr} | TDEE: ${shareResult.tdee}`}
           />
         </div>
       )}
