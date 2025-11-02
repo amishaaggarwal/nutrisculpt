@@ -534,6 +534,7 @@ export default function CalorieCalculator() {
             />
           </motion.div>
         )}
+      </div>
 
       {/* Hidden Shareable Card for Image Generation */}
       {shareResult && (

@@ -128,7 +128,7 @@ const ShareButton = ({
     
     if (message) {
       // Could show a toast notification here
-      console.log(message);
+      console.info(message);
     }
   };
 
