@@ -86,7 +86,7 @@ export default function TaglineTestPage() {
           Tagline Consistency Test
         </h1>
         <p className="mt-3 text-gray-600 dark:text-gray-300">
-          Testing that "NOURISHING BODIES • SCULPTING GREATNESS" always appears as text, never as a line
+          Testing that NOURISHING BODIES • SCULPTING GREATNESS always appears as text, never as a line
         </p>
         <div className="mt-4 flex justify-center space-x-4">
           <button
@@ -127,8 +127,8 @@ export default function TaglineTestPage() {
             <div className="text-center">
               <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 rounded p-2">
                 <p className="font-semibold">Expected Footer:</p>
-                <p>"Calculated with NutriSculpt Fitness Calculator"</p>
-                <p className="font-bold text-green-600">"NOURISHING BODIES • SCULPTING GREATNESS"</p>
+                <p>Calculated with NutriSculpt Fitness Calculator</p>
+                <p className="font-bold text-green-600">NOURISHING BODIES • SCULPTING GREATNESS</p>
                 <p className="text-red-600 mt-1">❌ Should NOT show horizontal line</p>
               </div>
             </div>

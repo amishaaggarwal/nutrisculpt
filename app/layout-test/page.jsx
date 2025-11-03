@@ -160,7 +160,7 @@ export default function LayoutTestPage() {
         </h2>
         <div className="space-y-2 text-sm text-blue-700 dark:text-blue-400">
           <p>✅ All calculator types display without text overlap</p>
-          <p>✅ Long exercise names (e.g., "Overhead Press") fit properly</p>
+          <p>✅ Long exercise names (e.g., &quot;Overhead Press&quot;) fit properly</p>
           <p>✅ Complex macro values display cleanly</p>
           <p>✅ Long subtitles wrap and scale appropriately</p>
           <p>✅ Progress rings and animations preserved</p>

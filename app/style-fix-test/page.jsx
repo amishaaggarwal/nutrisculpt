@@ -17,9 +17,11 @@ export default function StyleFixTestPage() {
 
   // Monitor console warnings
   useEffect(() => {
+    // eslint-disable-next-line no-console
     const originalWarn = console.warn;
     const warnings = [];
     
+    // eslint-disable-next-line no-console
     console.warn = (...args) => {
       const message = args.join(' ');
       if (message.includes('style property') || message.includes('background')) {
@@ -33,6 +35,7 @@ export default function StyleFixTestPage() {
     };
 
     return () => {
+      // eslint-disable-next-line no-console
       console.warn = originalWarn;
     };
   }, []);
@@ -185,7 +188,7 @@ export default function StyleFixTestPage() {
             <div className="text-center">
               <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 rounded p-2">
                 <p className="font-semibold text-green-600">✅ Expected:</p>
-                <p>"NOURISHING BODIES • SCULPTING GREATNESS"</p>
+                <p>NOURISHING BODIES • SCULPTING GREATNESS</p>
                 <p className="font-semibold text-red-600 mt-1">❌ Should NOT:</p>
                 <p>Show horizontal line or console warnings</p>
               </div>
@@ -257,8 +260,8 @@ export default function StyleFixTestPage() {
           <div>
             <h3 className="font-semibold text-yellow-800 dark:text-yellow-300">Console Warnings:</h3>
             <ul className="text-sm text-yellow-700 dark:text-yellow-400 space-y-1">
-              <li>✅ No "style property during rerender" warnings</li>
-              <li>✅ No "conflicting property" warnings</li>
+              <li>✅ No style property during rerender warnings</li>
+              <li>✅ No conflicting property warnings</li>
               <li>✅ No background/backgroundClip conflicts</li>
             </ul>
           </div>
