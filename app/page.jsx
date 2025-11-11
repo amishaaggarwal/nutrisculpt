@@ -13,12 +13,12 @@ const Home = () => {
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="mx-auto max-w-3xl"
+            className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8"
           >
-            <h2 className="mt-10 text-4xl font-bold">
+            <h2 className="mt-10 text-4xl font-bold text-white">
               Nourishing Bodies & Sculpting Greatness
             </h2>
-            <p className="mt-4 text-lg">
+            <p className="mt-4 text-lg text-white">
               Transform your health with NutriSculpt’s expert-led
               coaching—covering personal training, online fitness, posture
               correction, rehabilitation, recovery, and athletic performance.
