@@ -144,7 +144,7 @@ const Home = () => {
                 className="rounded-lg bg-gray-100 p-6 shadow-lg dark:bg-gray-700"
               >
                 <p className="text-gray-600 dark:text-gray-400 mb-4 italic">
-                  "{testimonial.text}"
+                  &ldquo;{testimonial.text}&rdquo;
                 </p>
                 <div className="border-t border-gray-300 dark:border-gray-600 pt-4">
                   <h5 className="font-bold text-blue-600 dark:text-blue-400">
