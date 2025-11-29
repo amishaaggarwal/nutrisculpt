@@ -15,17 +15,19 @@ export const useShareableImage = (calculatorType) => {
     const {
       quality = 0.95,
       pixelRatio = 2, // For high-resolution images
-      backgroundColor = '#ffffff'
+      backgroundColor = '#0f172a'
     } = options;
 
     try {
-      // Use html-to-image to capture the component
+      // Get actual dimensions for proper rendering
+      const rect = shareableCardRef.current.getBoundingClientRect();
+      
       const dataUrl = await toPng(shareableCardRef.current, {
         quality,
-        pixelRatio,
+        pixelRatio: 1,
         backgroundColor,
-        width: 600,
-        height: 600,
+        width: rect.width,
+        height: rect.height,
         style: {
           fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
         }

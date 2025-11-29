@@ -65,7 +65,7 @@ const Header = ({ darkMode, toggleDarkMode }) => {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center space-x-3">
           <Link href="/" className="flex items-center space-x-3">
-            <Image src="/logo.jpg" alt="Logo" width={40} height={40} />
+            <Image src="/logo.jpeg" alt="Logo" width={40} height={40} />
             <h1 className="text-xl font-bold text-blue-600 dark:text-blue-400">
               {BRAND}
             </h1>

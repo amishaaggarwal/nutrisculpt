@@ -201,7 +201,7 @@ export default function WaterIntakeCalculator() {
           <UnitToggle unitSystem={unitSystem} onUnitChange={setUnitSystem} />
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
           {/* Basic Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Basic Information</h3>
@@ -329,7 +329,7 @@ export default function WaterIntakeCalculator() {
           <p className="mb-3 text-sm text-gray-600 dark:text-gray-400">
             Select any conditions that apply (these affect water needs):
           </p>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2">
             {HEALTH_CONDITIONS.map((condition) => (
               <label key={condition.id} className="flex items-center">
                 <input
@@ -355,7 +355,7 @@ export default function WaterIntakeCalculator() {
       </motion.div>
 
       {/* Results Section */}
-      <div className="mt-8 grid gap-6 lg:grid-cols-3">
+      <div className="mt-8 grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {/* Daily Total */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -442,7 +442,7 @@ export default function WaterIntakeCalculator() {
         <h3 className="mb-6 text-center text-lg font-semibold">
           Suggested Hydration Schedule
         </h3>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
           {[
             { time: "Wake Up", amount: round(waterIntake.ml * 0.15), description: "Start your day" },
             { time: "Morning", amount: round(waterIntake.ml * 0.25), description: "Pre-lunch" },
@@ -468,7 +468,7 @@ export default function WaterIntakeCalculator() {
         <h3 className="mb-4 text-lg font-semibold text-center">
           💧 Hydration Tips
         </h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-2">
             <h4 className="font-medium text-cyan-600 dark:text-cyan-400">
               Stay Consistent:
@@ -513,7 +513,7 @@ export default function WaterIntakeCalculator() {
               Interactive fitness-inspired result card with animations
             </p>
           </div>
-          <div className="flex justify-center">
+          <div className="flex justify-center w-full">
             <div className="transform hover:scale-105 transition-transform duration-300">
               <ResultCard
                 type="water"

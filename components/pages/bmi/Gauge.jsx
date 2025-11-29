@@ -8,7 +8,7 @@ const Gauge = ({ value }) => {
   // The center (0 degrees) is now at a BMI of 25.
   const angle = -90 + ((clampedValue - 0) / 50) * 180;
   return (
-    <div className="relative mx-auto h-40 w-80">
+    <div className="relative mx-auto h-32 w-64 sm:h-40 sm:w-80">
       <svg viewBox="0 0 200 120" className="h-full w-full">
         <defs>
           <linearGradient id="bmiGradient" x1="0%" y1="0%" x2="100%" y2="0%">

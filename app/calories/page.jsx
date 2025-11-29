@@ -199,7 +199,7 @@ export default function CalorieCalculator() {
             <UnitToggle unitSystem={unitSystem} onUnitChange={setUnitSystem} />
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
             {/* Basic Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Basic Information</h3>
@@ -356,7 +356,7 @@ export default function CalorieCalculator() {
         </motion.div>
 
         {/* Results Section */}
-        <div className="mt-8 grid gap-6 lg:grid-cols-3">
+        <div className="mt-8 grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {/* BMR Result */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -441,7 +441,7 @@ export default function CalorieCalculator() {
           <h3 className="mb-6 text-center text-lg font-semibold">
             Recommended Macronutrient Breakdown
           </h3>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {[
               {
                 name: "Protein",

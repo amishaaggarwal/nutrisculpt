@@ -173,7 +173,7 @@ export default function OneRMCalculator() {
           <UnitToggle unitSystem={unitSystem} onUnitChange={setUnitSystem} />
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {/* Exercise Selection */}
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -259,7 +259,7 @@ export default function OneRMCalculator() {
             </div>
 
             {/* Individual Formula Results */}
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {Object.entries(oneRMResults)
                 .filter(([formula]) => formula !== "average")
                 .map(([formula, result]) => (
@@ -342,7 +342,7 @@ export default function OneRMCalculator() {
         <h3 className="mb-4 text-lg font-semibold text-center">
           💪 Training Tips
         </h3>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
           <div className="space-y-2">
             <h4 className="font-medium text-blue-600 dark:text-blue-400">
               For Strength:

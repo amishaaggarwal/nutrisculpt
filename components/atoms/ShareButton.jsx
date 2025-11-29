@@ -146,13 +146,13 @@ const ShareButton = ({
   
   const shareOptions = [
     ...(hasNativeShare ? [{ id: 'native', label: 'Share', icon: faShare, color: 'text-blue-600' }] : []),
+    { id: 'copy', label: copySuccess ? 'Copied!' : 'Copy Link', icon: faCopy, color: 'text-gray-600' },
+    { id: 'download', label: 'Download Image', icon: faDownload, color: 'text-gray-600' },
     { id: 'pinterest', label: 'Pinterest', icon: faPinterestBrand, color: 'text-red-600' },
     { id: 'facebook', label: 'Facebook', icon: faFacebookF, color: 'text-blue-600' },
     { id: 'whatsapp', label: 'WhatsApp', icon: faWhatsappBrand, color: 'text-green-600' },
     { id: 'instagram', label: 'Instagram', icon: faInstagramBrand, color: 'text-pink-600' },
-    { id: 'snapchat', label: 'Snapchat', icon: faSnapchatGhost, color: 'text-yellow-400' },
-    { id: 'copy', label: copySuccess ? 'Copied!' : 'Copy Link', icon: faCopy, color: 'text-gray-600' },
-    { id: 'download', label: 'Download Image', icon: faDownload, color: 'text-gray-600' }
+    { id: 'snapchat', label: 'Snapchat', icon: faSnapchatGhost, color: 'text-yellow-400' }
   ];
 
   const getButtonClasses = () => {
@@ -171,7 +171,7 @@ const ShareButton = ({
   return (
     <div className={`relative ${className}`}>
       <button
-        onClick={() => navigator.share ? handleShare('native') : setShowShareMenu(!showShareMenu)}
+        onClick={() => setShowShareMenu(!showShareMenu)}
         disabled={isGenerating}
         className={getButtonClasses()}
       >
@@ -185,29 +185,38 @@ const ShareButton = ({
         )}
       </button>
 
-      {/* Share Menu Dropdown */}
+      {/* Share Modal */}
       {showShareMenu && (
-        <div className="absolute top-full mt-2 right-0 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 min-w-[200px]">
-          {shareOptions.map((option) => (
-            <button
-              key={option.id}
-              onClick={() => handleShare(option.id)}
-              disabled={isGenerating}
-              className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-3 transition-colors duration-150"
-            >
-              <FontAwesomeIcon icon={option.icon} className={`w-4 h-4 ${option.color}`} />
-              <span className="text-sm text-gray-700">{option.label}</span>
-            </button>
-          ))}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black bg-opacity-50" 
+            onClick={() => setShowShareMenu(false)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900">Share Your Result</h3>
+              <button
+                onClick={() => setShowShareMenu(false)}
+                className="text-gray-400 hover:text-gray-600 text-xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {shareOptions.map((option) => (
+                <button
+                  key={option.id}
+                  onClick={() => handleShare(option.id)}
+                  disabled={isGenerating}
+                  className="flex flex-col items-center p-4 rounded-xl hover:bg-gray-50 transition-colors duration-150 border border-gray-200"
+                >
+                  <FontAwesomeIcon icon={option.icon} className={`w-6 h-6 mb-2 ${option.color}`} />
+                  <span className="text-sm text-gray-700 text-center">{option.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-      )}
-
-      {/* Backdrop to close menu */}
-      {showShareMenu && (
-        <div 
-          className="fixed inset-0 z-40" 
-          onClick={() => setShowShareMenu(false)}
-        />
       )}
     </div>
   );

@@ -233,7 +233,7 @@ export default function MacroCalculator() {
               <UnitToggle unitSystem={unitSystem} onUnitChange={setUnitSystem} />
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
               {/* Basic Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Basic Information</h3>
@@ -387,7 +387,7 @@ export default function MacroCalculator() {
 
           {/* Custom Macro Inputs */}
           {selectedPreset === "Custom" && (
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-3">
               <InputField
                 label="Protein %"
                 value={customMacros.protein}
@@ -429,7 +429,7 @@ export default function MacroCalculator() {
       </motion.div>
 
       {/* Results Section */}
-      <div className="mt-8 grid gap-6 lg:grid-cols-3">
+      <div className="mt-8 grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {/* Protein */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -552,7 +552,7 @@ export default function MacroCalculator() {
         <h3 className="mb-6 text-center text-lg font-semibold">
           Daily Meal Distribution (3 meals)
         </h3>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {["Breakfast", "Lunch", "Dinner"].map((meal) => (
             <div key={meal} className="rounded-lg bg-gray-50 p-4 dark:bg-gray-700/50">
               <h4 className="mb-3 text-center font-semibold">{meal}</h4>
@@ -597,7 +597,7 @@ export default function MacroCalculator() {
         <h3 className="mb-4 text-lg font-semibold text-center">
           🥗 Macro Guidelines
         </h3>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-2">
             <h4 className="font-medium text-red-600 dark:text-red-400">
               Protein Sources:

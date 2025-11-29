@@ -217,7 +217,7 @@ export default function HeartRateZoneCalculator() {
         transition={{ duration: 0.6, delay: 0.2 }}
         className="rounded-xl bg-white p-6 shadow-lg ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700"
       >
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
           {/* Basic Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Basic Information</h3>
@@ -396,7 +396,7 @@ export default function HeartRateZoneCalculator() {
                   </div>
                 </div>
                 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                   <div>
                     <h5 className="font-medium text-gray-900 dark:text-gray-100">Heart Rate Range</h5>
                     <p className="text-lg font-bold">
@@ -467,7 +467,7 @@ export default function HeartRateZoneCalculator() {
         <h3 className="mb-4 text-lg font-semibold text-center">
           ❤️ Heart Rate Training Tips
         </h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-2">
             <h4 className="font-medium text-red-600 dark:text-red-400">
               Getting Started:
@@ -512,7 +512,7 @@ export default function HeartRateZoneCalculator() {
               Interactive fitness-inspired result card with animations
             </p>
           </div>
-          <div className="flex justify-center">
+          <div className="flex justify-center w-full">
             <div className="transform hover:scale-105 transition-transform duration-300">
               <ResultCard
                 type="heart"
