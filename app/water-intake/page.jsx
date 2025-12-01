@@ -513,8 +513,8 @@ export default function WaterIntakeCalculator() {
               Interactive fitness-inspired result card with animations
             </p>
           </div>
-          <div className="flex justify-center w-full">
-            <div className="transform hover:scale-105 transition-transform duration-300">
+          <div className="flex justify-center px-2 sm:px-4">
+            <div className="w-full max-w-xs sm:max-w-sm transform hover:scale-105 transition-transform duration-300">
               <ResultCard
                 type="water"
                 value={shareResult.value}
