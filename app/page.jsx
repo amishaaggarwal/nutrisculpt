@@ -25,7 +25,9 @@ const Home = () => {
           </p>
 
           <motion.a
-            href="#contact"
+            href="/transformation"
+            target="_blank"
+            rel="noopener noreferrer"
             className="mt-6 inline-block rounded-lg bg-white px-6 py-3 font-bold text-blue-600 shadow-lg transition hover:bg-gray-200 dark:bg-gray-800 dark:text-blue-400 dark:hover:bg-gray-700"
             whileHover={{ scale: 1.1 }}
           >
