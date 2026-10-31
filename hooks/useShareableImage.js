@@ -14,22 +14,40 @@ export const useShareableImage = (calculatorType) => {
 
     const {
       quality = 0.95,
-      pixelRatio = 2, // For high-resolution images
-      backgroundColor = '#ffffff'
+      pixelRatio = 2,
+      backgroundColor = '#0f172a'
     } = options;
 
     try {
-      // Use html-to-image to capture the component
+      // Temporarily position the element for proper rendering
+      const originalStyle = {
+        position: shareableCardRef.current.style.position,
+        top: shareableCardRef.current.style.top,
+        left: shareableCardRef.current.style.left,
+        width: shareableCardRef.current.style.width,
+        height: shareableCardRef.current.style.height
+      };
+
+      // Set fixed dimensions for consistent rendering
+      shareableCardRef.current.style.position = 'fixed';
+      shareableCardRef.current.style.top = '0px';
+      shareableCardRef.current.style.left = '0px';
+      shareableCardRef.current.style.width = '320px';
+      shareableCardRef.current.style.height = '320px';
+      
       const dataUrl = await toPng(shareableCardRef.current, {
         quality,
         pixelRatio,
         backgroundColor,
-        width: 600,
-        height: 600,
+        width: 320,
+        height: 320,
         style: {
           fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
         }
       });
+
+      // Restore original styles
+      Object.assign(shareableCardRef.current.style, originalStyle);
 
       // Convert data URL to blob
       const response = await fetch(dataUrl);

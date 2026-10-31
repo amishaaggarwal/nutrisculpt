@@ -212,7 +212,7 @@ export default function IdealWeightCalculator() {
           <UnitToggle unitSystem={unitSystem} onUnitChange={setUnitSystem} />
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
           {/* Basic Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Basic Information</h3>
@@ -357,7 +357,7 @@ export default function IdealWeightCalculator() {
               Formula Breakdown
             </h3>
             
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {Object.entries(idealWeights)
                 .filter(([formula]) => formula !== "average")
                 .map(([formula, result]) => (
@@ -413,7 +413,7 @@ export default function IdealWeightCalculator() {
         <h3 className="mb-4 text-lg font-semibold text-center">
           💡 Important Notes
         </h3>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
           <div className="space-y-2">
             <h4 className="font-medium text-purple-600 dark:text-purple-400">
               About These Calculations:
@@ -448,8 +448,8 @@ export default function IdealWeightCalculator() {
               Interactive fitness-inspired result card with animations
             </p>
           </div>
-          <div className="flex justify-center">
-            <div className="transform hover:scale-105 transition-transform duration-300">
+          <div className="flex justify-center px-2 sm:px-4">
+            <div className="w-full max-w-xs sm:max-w-sm transform hover:scale-105 transition-transform duration-300">
               <ResultCard
                 type="idealWeight"
                 value={shareResult.value}

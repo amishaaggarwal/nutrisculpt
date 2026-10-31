@@ -133,14 +133,14 @@ export default function BmiCalculator() {
       </div>
 
       {/* Input Form */}
-      <div className="rounded-xl bg-white p-6 shadow-lg ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700">
+      <div className="rounded-xl bg-white p-4 sm:p-6 shadow-lg ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700">
         {/* Unit System Selector */}
         <div className="mb-6 flex justify-center">
           <UnitToggle unitSystem={unitSystem} onUnitChange={setUnitSystem} />
         </div>
 
         {/* Input Fields */}
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="grid gap-4 sm:gap-6 sm:grid-cols-1 md:grid-cols-2">
           {unitSystem === "metric" ? (
             <>
               <InputField
@@ -196,9 +196,9 @@ export default function BmiCalculator() {
       </div>
 
       {/* Results Section */}
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 sm:mt-8 grid gap-4 sm:gap-6 lg:grid-cols-2">
         {/* BMI Result */}
-        <div className="rounded-xl bg-white p-6 shadow-lg ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700">
+        <div className="rounded-xl bg-white p-4 sm:p-6 shadow-lg ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700">
           <div className="text-center">
             <h3 className="mb-4 text-lg font-semibold">Your BMI Result</h3>
             <div className="mb-4">
@@ -235,7 +235,7 @@ export default function BmiCalculator() {
         </div>
 
         {/* BMI Categories */}
-        <div className="rounded-xl bg-white p-6 shadow-lg ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700">
+        <div className="rounded-xl bg-white p-4 sm:p-6 shadow-lg ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700">
           <h3 className="mb-4 text-lg font-semibold">BMI Categories</h3>
           <BMICategories />
         </div>
@@ -252,8 +252,8 @@ export default function BmiCalculator() {
               Interactive fitness-inspired result card with animations
             </p>
           </div>
-          <div className="flex justify-center">
-            <div className="transform hover:scale-105 transition-transform duration-300">
+          <div className="flex justify-center px-2 sm:px-4">
+            <div className="w-full max-w-xs sm:max-w-sm transform hover:scale-105 transition-transform duration-300">
               <ResultCard
                 type="bmi"
                 value={shareResult.value}
