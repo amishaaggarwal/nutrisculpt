@@ -170,7 +170,7 @@ const Home = () => {
                 className="rounded-lg bg-gray-100 p-6 shadow-lg dark:bg-gray-700"
               >
                 <p className="text-gray-600 italic dark:text-gray-400">
-                  "{testimonial.text}"
+                  {testimonial.text}
                 </p>
                 <h5 className="mt-4 font-bold text-blue-600 dark:text-blue-400">
                   - {testimonial.name}, {testimonial.role}
