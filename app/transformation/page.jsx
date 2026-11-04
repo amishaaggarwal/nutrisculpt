@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 
 export default function Transformation() {
   const [form, setForm] = useState({
@@ -108,6 +109,15 @@ export default function Transformation() {
                 <li key={z.name}>{z.name}: {z.min} - {z.max} bpm</li>
               ))}
             </ul>
+          </div>
+
+          <div className="flex justify-center">
+            <Link
+              href="/expert-connect"
+              className="rounded bg-green-600 px-8 py-3 text-center font-bold text-white shadow transition hover:bg-green-700"
+            >
+              Connect to an expert
+            </Link>
           </div>
         </div>
       )}

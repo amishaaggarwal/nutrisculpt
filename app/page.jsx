@@ -53,46 +53,55 @@ const Home = () => {
                 title: "Personal 1-1 Training",
                 description:
                   "Personalized one-on-one training sessions with expert guidance, form correction, and customized workout plans to maximize your results.",
+                href: "/services/personal-1-1-training",
               },
               {
                 title: "Virtual 1-1 Training",
                 description:
                   "Online personal training for clients in India and abroad—professional coaching anytime, anywhere, delivering results equal to in-person sessions.",
+                href: "/services/virtual-1-1-training",
               },
               {
                 title: "Functional Movement Testing",
                 description:
                   "Comprehensive movement analysis with detailed report identifying imbalances, mobility issues, and injury prevention strategies.",
+                href: "/services/functional-movement-testing",
               },
               {
                 title: "Program Design (1-3 months)",
                 description:
                   "Custom workout programs with detailed weekly plans designed specifically for your goals, complete with progression tracking.",
+                href: "/services/program-design",
               },
               {
                 title: "Posture Correction & Mobility Training",
                 description:
                   "Correct imbalances, relieve pain, and improve mobility with targeted exercises designed to restore posture, enhance movement, and prevent injuries.",
+                href: "/services/posture-correction-mobility",
               },
               {
                 title: "Group Training",
                 description:
                   "Small group training sessions that combine motivation with personalized attention for an engaging and effective workout experience.",
+                href: "/services/group-training",
               },
               {
                 title: "Rehabilitation & Recovery Programs",
                 description:
                   "Holistic programs blending rehabilitation and recovery to restore strength, enhance mobility, support healing, and prevent future injuries through corrective training.",
+                href: "/services/rehabilitation-recovery",
               },
               {
                 title: "Athletic & Sports Performance",
                 description:
                   "Sport-specific training programs to enhance performance, speed, agility, and power for competitive athletes and sports enthusiasts.",
+                href: "/services/athletic-sports-performance",
               },
               {
                 title: "Senior Fitness Programs",
                 description:
                   "Specialized fitness programs for older adults focusing on balance, strength, mobility, and maintaining independence and quality of life.",
+                href: "/services/senior-fitness",
               },
             ].map((service, index) => (
               <motion.div
@@ -102,12 +111,17 @@ const Home = () => {
                 transition={{ duration: 0.6, delay: index * 0.2 }}
                 className="rounded-lg bg-white p-6 text-center shadow-lg dark:bg-gray-800"
               >
-                <h4 className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                  {service.title}
-                </h4>
-                <p className="mt-4 text-gray-600 dark:text-gray-400">
-                  {service.description}
-                </p>
+                <a href={service.href} className="block h-full">
+                  <h4 className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                    {service.title}
+                  </h4>
+                  <p className="mt-4 text-gray-600 dark:text-gray-400">
+                    {service.description}
+                  </p>
+                  <span className="mt-4 inline-block text-sm font-semibold text-blue-600 hover:underline dark:text-blue-400">
+                    Learn more →
+                  </span>
+                </a>
               </motion.div>
             ))}
           </div>
