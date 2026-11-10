@@ -7,6 +7,8 @@ import InputField from "@/components/atoms/InputField";
 import UnitToggle from "@/components/pages/bmi/UnitToggle";
 import ShareButton from "@/components/atoms/ShareButton";
 import ResultCard from "@/components/atoms/ResultCard";
+import ResultExplanation from "@/components/atoms/ResultExplanation";
+import HealthDisclaimer from "@/components/atoms/HealthDisclaimer";
 import { useShareableImage } from "@/hooks/useShareableImage";
 
 // Utility functions
@@ -346,6 +348,40 @@ export default function IdealWeightCalculator() {
 
           </motion.div>
 
+          {/* Educational explanation */}
+          <div className="mt-6">
+            <ResultExplanation
+              whatItMeans={
+                <>
+                  Your estimated{" "}
+                  <span className="font-semibold">ideal weight</span> is{" "}
+                  {unitSystem === "metric" ? idealWeights.average.kg : idealWeights.average.lb}{" "}
+                  {unitSystem === "metric" ? "kg" : "lbs"}, calculated using
+                  several general weight estimation formulas based on your
+                  height, gender, and body frame.
+                </>
+              }
+              whyItMatters={
+                <>
+                  These formulas can give you a rough idea of what a healthy
+                  weight range might look like for your body type. They can
+                  be useful for setting general goals and understanding where
+                  you fall relative to standard reference ranges.
+                </>
+              }
+              limitations={
+                <>
+                  Different formulas may produce different results because
+                  they use different assumptions. Muscle mass, bone structure,
+                  body composition, age, and individual circumstances all
+                  affect what a healthy weight looks like for you. This value
+                  is not a universal healthy-weight target — it is an estimate,
+                  and health is about much more than a number on a scale.
+                </>
+              }
+            />
+          </div>
+
           {/* Individual Formula Results */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -436,6 +472,39 @@ export default function IdealWeightCalculator() {
           </div>
         </div>
       </motion.div>
+
+      {/* Health Disclaimer */}
+      <div className="mt-6">
+        <HealthDisclaimer
+          universalDisclaimer={
+            <>
+              The results provided are estimates based on general population
+              formulas and the information you have entered. They are
+              intended for general educational and fitness guidance, not as a
+              substitute for professional medical advice. Individual
+              requirements may vary depending on age, body composition,
+              activity level, lifestyle, health status and other personal
+              factors. These values should be treated as a starting reference,
+              not fixed targets. Health Notice: If you have an existing medical
+              condition, metabolic disorder, are taking medication, are
+              pregnant, or have specific dietary or exercise restrictions,
+              consult a qualified healthcare professional before making
+              changes to your diet, hydration or exercise routine. Remember:
+              Your fitness journey is individual. Use these results as a
+              starting point and adjust your approach based on your body&apos;s
+              response and professional guidance.
+            </>
+          }
+          specificCaution={
+            <>
+              Estimated ideal weight does not account fully for individual
+              body composition, muscle mass or health status. Do not use this
+              result as the sole measure of health or as a reason to pursue
+              unnecessary weight changes.
+            </>
+          }
+        />
+      </div>
 
       {/* Enhanced Interactive Result Card Preview */}
       {shareResult && (

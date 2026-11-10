@@ -7,6 +7,8 @@ import InputField from "@/components/atoms/InputField";
 import UnitToggle from "@/components/pages/bmi/UnitToggle";
 import ShareButton from "@/components/atoms/ShareButton";
 import ResultCard from "@/components/atoms/ResultCard";
+import ResultExplanation from "@/components/atoms/ResultExplanation";
+import HealthDisclaimer from "@/components/atoms/HealthDisclaimer";
 import { useShareableImage } from "@/hooks/useShareableImage";
 
 // Utility functions
@@ -287,6 +289,49 @@ export default function OneRMCalculator() {
         )}
       </motion.div>
 
+      {/* Educational explanation */}
+      {oneRMResults.average && (
+        <div className="mt-6">
+          <ResultExplanation
+            whatItMeans={
+              <>
+                Your estimated{" "}
+                <span className="font-semibold">
+                  one-repetition maximum (1RM)
+                </span>{" "}
+                is the maximum weight you could lift once for{" "}
+                {exercise} with proper form. It is calculated from the weight
+                you lifted ({unitSystem === "metric" ? oneRMResults.average.kg : oneRMResults.average.lb}{" "}
+                {unitSystem === "metric" ? "kg" : "lbs"}) and the{" "}
+                <span className="font-semibold">{reps} repetitions</span>{" "}
+                you performed, using several estimation formulas.
+              </>
+            }
+            whyItMatters={
+              <>
+                Your 1RM helps you set training weights for different goals.
+                Training at specific percentages of your 1RM targets different
+                outcomes — lower percentages for endurance, higher
+                percentages for strength. Tracking your 1RM over time helps
+                monitor strength progression.
+              </>
+            }
+            limitations={
+              <>
+                Estimated 1RM values are predictions, not measurements. They
+                may differ from your actual maximum lifting capacity due to
+                factors like exercise technique, fatigue, experience level,
+                and exercise selection. Different formulas can give different
+                results, which is why we show an average. These estimates are
+                for programming purposes only — they are not a reason to
+                attempt an unsafe maximum lift without proper preparation,
+                spotters, and experience.
+              </>
+            }
+          />
+        </div>
+      )}
+
       {/* Training Percentages */}
       {oneRMResults.average && (
         <motion.div
@@ -373,6 +418,40 @@ export default function OneRMCalculator() {
           </p>
         </div>
       </motion.div>
+
+      {/* Health Disclaimer */}
+      <div className="mt-6">
+        <HealthDisclaimer
+          universalDisclaimer={
+            <>
+              The results provided are estimates based on general population
+              formulas and the information you have entered. They are
+              intended for general educational and fitness guidance, not as a
+              substitute for professional medical advice. Individual
+              requirements may vary depending on age, body composition,
+              activity level, lifestyle, health status and other personal
+              factors. These values should be treated as a starting reference,
+              not fixed targets. Health Notice: If you have an existing medical
+              condition, metabolic disorder, are taking medication, are
+              pregnant, or have specific dietary or exercise restrictions,
+              consult a qualified healthcare professional before making
+              changes to your diet, hydration or exercise routine. Remember:
+              Your fitness journey is individual. Use these results as a
+              starting point and adjust your approach based on your body&apos;s
+              response and professional guidance.
+            </>
+          }
+          specificCaution={
+            <>
+              This is an estimated strength value, not a recommendation to
+              attempt a maximum lift. Always prioritize proper technique,
+              suitable progression and appropriate supervision. Do not attempt
+              maximal lifts if you are injured, experiencing pain or medically
+              advised against strenuous exercise.
+            </>
+          }
+        />
+      </div>
 
       {/* Enhanced Interactive Result Card Preview */}
       {shareResult && (

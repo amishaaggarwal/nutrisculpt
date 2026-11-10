@@ -6,6 +6,8 @@ import InputField from "@/components/atoms/InputField";
 import UnitToggle from "@/components/pages/bmi/UnitToggle";
 import ShareButton from "@/components/atoms/ShareButton";
 import ResultCard from "@/components/atoms/ResultCard";
+import ResultExplanation from "@/components/atoms/ResultExplanation";
+import HealthDisclaimer from "@/components/atoms/HealthDisclaimer";
 import { useShareableImage } from "@/hooks/useShareableImage";
 
 // Utility functions
@@ -431,6 +433,46 @@ export default function CalorieCalculator() {
           </motion.div>
         </div>
 
+        {/* Educational explanation */}
+        <div className="mt-6">
+          <ResultExplanation
+            whatItMeans={
+              <>
+                Your{" "}
+                <span className="font-semibold">
+                  Basal Metabolic Rate (BMR)
+                </span>{" "}
+                of {bmr} calories/day is the energy your body needs at rest
+                for basic functions. Your{" "}
+                <span className="font-semibold">
+                  maintenance calories (TDEE)
+                </span>{" "}
+                of {tdee} calories/day includes your daily activity. Your{" "}
+                <span className="font-semibold">target</span> of{" "}
+                {targetCalories} calories/day is adjusted for your goal of{" "}
+                {selectedGoal?.label.toLowerCase()}.
+              </>
+            }
+            whyItMatters={
+              <>
+                Eating at a moderate deficit below your maintenance calories
+                can lead to gradual weight loss, while eating above them
+                supports weight gain. Matching your intake to your goal is
+                key to achieving lasting results.
+              </>
+            }
+            limitations={
+              <>
+                These calculations are estimates based on general formulas.
+                Actual energy needs vary between individuals based on
+                metabolism, muscle mass, genetics, medical conditions, and
+                other factors. Use these numbers as a guide, not a fixed rule,
+                and adjust based on your progress and how you feel.
+              </>
+            }
+          />
+        </div>
+
         {/* Macronutrient Breakdown */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -518,6 +560,39 @@ export default function CalorieCalculator() {
             </div>
           </div>
         </motion.div>
+
+        {/* Health Disclaimer */}
+        <div className="mt-6">
+          <HealthDisclaimer
+            universalDisclaimer={
+              <>
+                The results provided are estimates based on general population
+                formulas and the information you have entered. They are
+                intended for general educational and fitness guidance, not as
+                a substitute for professional medical advice. Individual
+                requirements may vary depending on age, body composition,
+                activity level, lifestyle, health status and other personal
+                factors. These values should be treated as a starting
+                reference, not fixed targets. Health Notice: If you have an
+                existing medical condition, metabolic disorder, are taking
+                medication, are pregnant, or have specific dietary or exercise
+                restrictions, consult a qualified healthcare professional
+                before making changes to your diet, hydration or exercise
+                routine. Remember: Your fitness journey is individual. Use
+                these results as a starting point and adjust your approach
+                based on your body&apos;s response and professional guidance.
+              </>
+            }
+            specificCaution={
+              <>
+                Calorie estimates are not personalized medical or dietary
+                prescriptions. Individual energy requirements may differ,
+                particularly during pregnancy, breastfeeding, adolescence or
+                when managing a medical or nutritional condition.
+              </>
+            }
+          />
+        </div>
 
         {/* Enhanced Interactive Result Card Preview */}
         {shareResult && (

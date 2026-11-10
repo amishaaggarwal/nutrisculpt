@@ -7,6 +7,8 @@ import BMICategories from "@/components/pages/bmi/BMICategories";
 import UnitToggle from "@/components/pages/bmi/UnitToggle";
 import ShareButton from "@/components/atoms/ShareButton";
 import ResultCard from "@/components/atoms/ResultCard";
+import ResultExplanation from "@/components/atoms/ResultExplanation";
+import HealthDisclaimer from "@/components/atoms/HealthDisclaimer";
 import { useShareableImage } from "@/hooks/useShareableImage";
 
 // Utility functions
@@ -221,6 +223,45 @@ export default function BmiCalculator() {
               </p>
             </div>
 
+            {/* Educational explanation */}
+            <div className="mt-4">
+              <ResultExplanation
+                whatItMeans={
+                  <>
+                    Your BMI of{" "}
+                    <span className="font-semibold">
+                      {isFinite(bmi) && bmi > 0 ? round(bmi, 1) : "—"}
+                    </span>{" "}
+                    places you in the{" "}
+                    <span className="font-semibold">{label}</span>{" "}
+                    category. BMI is a simple, widely used screening tool
+                    that relates body weight to height.
+                  </>
+                }
+                whyItMatters={
+                  <>
+                    Maintaining a BMI within the{" "}
+                    <span className="font-semibold">
+                      18.5–24.9
+                    </span>{" "}
+                    range is associated with lower risk of chronic diseases
+                    such as heart disease, type 2 diabetes, and certain
+                    cancers. Your healthy weight range for your height is{" "}
+                    <span className="font-semibold">{healthyWeightRange}</span>.
+                  </>
+                }
+                limitations={
+                  <>
+                    BMI is a screening tool and does not directly measure
+                    body fat or distinguish between muscle and fat. It may
+                    not be accurate for athletes, older adults, pregnant
+                    women, or people with high muscle mass. Use it as one
+                    piece of information, not a diagnosis.
+                  </>
+                }
+              />
+            </div>
+
             {/* Share Button */}
             {shareResult && shareData && (
               <div className="mt-6 text-center">
@@ -232,6 +273,39 @@ export default function BmiCalculator() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Health Disclaimer */}
+        <div className="mt-6">
+          <HealthDisclaimer
+            universalDisclaimer={
+              <>
+                The results provided are estimates based on general population
+                formulas and the information you have entered. They are
+                intended for general educational and fitness guidance, not as
+                a substitute for professional medical advice. Individual
+                requirements may vary depending on age, body composition,
+                activity level, lifestyle, health status and other personal
+                factors. These values should be treated as a starting
+                reference, not fixed targets. Health Notice: If you have an
+                existing medical condition, metabolic disorder, are taking
+                medication, are pregnant, or have specific dietary or exercise
+                restrictions, consult a qualified healthcare professional
+                before making changes to your diet, hydration or exercise
+                routine. Remember: Your fitness journey is individual. Use
+                these results as a starting point and adjust your approach
+                based on your body&apos;s response and professional guidance.
+              </>
+            }
+            specificCaution={
+              <>
+                BMI is a general screening measure and does not directly
+                measure body fat or determine an individual&apos;s health status.
+                Athletes, highly muscular individuals and people with different
+                body compositions may need additional assessment.
+              </>
+            }
+          />
         </div>
 
         {/* BMI Categories */}

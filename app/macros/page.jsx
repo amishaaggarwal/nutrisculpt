@@ -7,6 +7,8 @@ import InputField from "@/components/atoms/InputField";
 import UnitToggle from "@/components/pages/bmi/UnitToggle";
 import ShareButton from "@/components/atoms/ShareButton";
 import ResultCard from "@/components/atoms/ResultCard";
+import ResultExplanation from "@/components/atoms/ResultExplanation";
+import HealthDisclaimer from "@/components/atoms/HealthDisclaimer";
 import { useShareableImage } from "@/hooks/useShareableImage";
 
 // Utility functions
@@ -509,6 +511,42 @@ export default function MacroCalculator() {
         </motion.div>
       </div>
 
+      {/* Educational explanation */}
+      <div className="mt-6">
+        <ResultExplanation
+          whatItMeans={
+            <>
+              Macronutrients —{" "}
+              <span className="font-semibold">protein</span>,{" "}
+              <span className="font-semibold">carbohydrates</span>, and{" "}
+              <span className="font-semibold">fats</span> — are the three main
+              nutrients your body needs in large amounts. Your daily targets
+              show how many grams of each you should eat based on your total
+              calorie goal and chosen distribution.
+            </>
+          }
+          whyItMatters={
+            <>
+              Protein supports muscle repair and maintenance. Carbohydrates
+              are your body&apos;s main energy source. Fats are essential for
+              hormone function and vitamin absorption. A balanced macro
+              distribution helps support your fitness goals, whether that is
+              losing weight, gaining muscle, or maintaining health.
+            </>
+          }
+          limitations={
+            <>
+              There is no single best macro split for everyone. The right
+              distribution depends on your activity level, training goals,
+              lifestyle, and health. These are general recommendations —
+              adjust based on your progress, energy levels, and personal
+              preferences. Whole food sources matter more than exact gram
+              counts.
+            </>
+          }
+        />
+      </div>
+
       {/* Enhanced Interactive Result Card Preview */}
       {shareResult && (
         <div className="mt-8">
@@ -630,6 +668,40 @@ export default function MacroCalculator() {
           </div>
         </div>
       </motion.div>
+
+      {/* Health Disclaimer */}
+      <div className="mt-6">
+        <HealthDisclaimer
+          universalDisclaimer={
+            <>
+              The results provided are estimates based on general population
+              formulas and the information you have entered. They are
+              intended for general educational and fitness guidance, not as a
+              substitute for professional medical advice. Individual
+              requirements may vary depending on age, body composition,
+              activity level, lifestyle, health status and other personal
+              factors. These values should be treated as a starting reference,
+              not fixed targets. Health Notice: If you have an existing medical
+              condition, metabolic disorder, are taking medication, are
+              pregnant, or have specific dietary or exercise restrictions,
+              consult a qualified healthcare professional before making
+              changes to your diet, hydration or exercise routine. Remember:
+              Your fitness journey is individual. Use these results as a
+              starting point and adjust your approach based on your body&apos;s
+              response and professional guidance.
+            </>
+          }
+          specificCaution={
+            <>
+              Macronutrient estimates are general nutritional references, not
+              individualized dietary prescriptions. People with kidney disease,
+              metabolic disorders or other conditions requiring dietary
+              restrictions should seek guidance from a qualified healthcare
+              professional or registered dietitian.
+            </>
+          }
+        />
+      </div>
 
       {/* Hidden Shareable Card for Image Generation */}
       {shareResult && (

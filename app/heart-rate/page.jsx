@@ -6,6 +6,8 @@ import { motion } from "framer-motion";
 import InputField from "@/components/atoms/InputField";
 import ShareButton from "@/components/atoms/ShareButton";
 import ResultCard from "@/components/atoms/ResultCard";
+import ResultExplanation from "@/components/atoms/ResultExplanation";
+import HealthDisclaimer from "@/components/atoms/HealthDisclaimer";
 import { useShareableImage } from "@/hooks/useShareableImage";
 
 // Utility functions
@@ -431,6 +433,43 @@ export default function HeartRateZoneCalculator() {
         </div>
       </motion.div>
 
+      {/* Educational explanation */}
+      <div className="mt-6">
+        <ResultExplanation
+          whatItMeans={
+            <>
+              Your{" "}
+              <span className="font-semibold">
+                heart rate training zones
+              </span> are ranges of heartbeats per minute that correspond to
+              different training intensities. Zone 1 is the lightest, and Zone
+              5 is the most intense. Your maximum heart rate is estimated at{" "}
+              {effectiveMaxHR} bpm, and zones are calculated as percentages of
+              that maximum.
+            </>
+          }
+          whyItMatters={
+            <>
+              Training in different zones produces different fitness benefits.
+              Lower zones support recovery and endurance, while higher zones
+              improve cardiovascular fitness, speed, and power. Knowing your
+              zones helps you structure your workouts to match your goals.
+            </>
+          }
+          limitations={
+            <>
+              Age-based maximum heart rate formulas are estimates — actual
+              maximum heart rate varies between individuals. Factors like
+              medications, cardiovascular conditions, fitness level, and
+              individual physiology can affect your heart rate response to
+              exercise. Use these zones as a general guide, not a strict rule.
+              If you have heart-related health concerns, consult a healthcare
+              professional before using heart rate training zones.
+            </>
+          }
+        />
+      </div>
+
       {/* Training Recommendation */}
       {goalRecommendation && (
         <motion.div
@@ -500,6 +539,40 @@ export default function HeartRateZoneCalculator() {
           </div>
         </div>
       </motion.div>
+
+      {/* Health Disclaimer */}
+      <div className="mt-6">
+        <HealthDisclaimer
+          universalDisclaimer={
+            <>
+              The results provided are estimates based on general population
+              formulas and the information you have entered. They are
+              intended for general educational and fitness guidance, not as a
+              substitute for professional medical advice. Individual
+              requirements may vary depending on age, body composition,
+              activity level, lifestyle, health status and other personal
+              factors. These values should be treated as a starting reference,
+              not fixed targets. Health Notice: If you have an existing medical
+              condition, metabolic disorder, are taking medication, are
+              pregnant, or have specific dietary or exercise restrictions,
+              consult a qualified healthcare professional before making
+              changes to your diet, hydration or exercise routine. Remember:
+              Your fitness journey is individual. Use these results as a
+              starting point and adjust your approach based on your body&apos;s
+              response and professional guidance.
+            </>
+          }
+          specificCaution={
+            <>
+              These zones are estimates, not individually measured training
+              thresholds. Certain medications and cardiovascular conditions
+              can affect heart rate responses. Seek medical guidance before
+              starting or changing exercise if you have relevant health
+              concerns.
+            </>
+          }
+        />
+      </div>
 
       {/* Enhanced Interactive Result Card Preview */}
       {shareResult && (

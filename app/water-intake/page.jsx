@@ -7,6 +7,8 @@ import InputField from "@/components/atoms/InputField";
 import UnitToggle from "@/components/pages/bmi/UnitToggle";
 import ShareButton from "@/components/atoms/ShareButton";
 import ResultCard from "@/components/atoms/ResultCard";
+import ResultExplanation from "@/components/atoms/ResultExplanation";
+import HealthDisclaimer from "@/components/atoms/HealthDisclaimer";
 import { useShareableImage } from "@/hooks/useShareableImage";
 
 // Utility functions
@@ -432,6 +434,42 @@ export default function WaterIntakeCalculator() {
         </motion.div>
       </div>
 
+      {/* Educational explanation */}
+      <div className="mt-6">
+        <ResultExplanation
+          whatItMeans={
+            <>
+              Your estimated{" "}
+              <span className="font-semibold">daily water intake</span> is{" "}
+              {waterIntake.liters}L ({waterIntake.ml} ml), based on your
+              weight, activity level, climate, and other factors. It also
+              suggests spreading this intake throughout the day, with an
+              hourly goal of {hourlyIntake.ml} ml per waking hour.
+            </>
+          }
+          whyItMatters={
+            <>
+              Staying properly hydrated supports energy, digestion,
+              temperature regulation, and overall wellbeing. Knowing a
+              reasonable daily target can help you build consistent hydration
+              habits, especially if you are active or live in a hot climate.
+            </>
+          }
+          limitations={
+            <>
+              Hydration needs vary significantly from person to person and
+              from day to day. Activity level, climate, sweating, diet, and
+              individual health conditions all affect how much fluid you need.
+              These are general estimates, not strict requirements — listen
+              to your body&apos;s signals like thirst and urine color. If you have
+              medical conditions that affect fluid balance, follow your
+              healthcare provider&apos;s guidance, as individual fluid restrictions
+              take priority over general calculator estimates.
+            </>
+          }
+        />
+      </div>
+
       {/* Hydration Schedule */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -501,6 +539,40 @@ export default function WaterIntakeCalculator() {
           </div>
         </div>
       </motion.div>
+
+      {/* Health Disclaimer */}
+      <div className="mt-6">
+        <HealthDisclaimer
+          universalDisclaimer={
+            <>
+              The results provided are estimates based on general population
+              formulas and the information you have entered. They are
+              intended for general educational and fitness guidance, not as a
+              substitute for professional medical advice. Individual
+              requirements may vary depending on age, body composition,
+              activity level, lifestyle, health status and other personal
+              factors. These values should be treated as a starting reference,
+              not fixed targets. Health Notice: If you have an existing medical
+              condition, metabolic disorder, are taking medication, are
+              pregnant, or have specific dietary or exercise restrictions,
+              consult a qualified healthcare professional before making
+              changes to your diet, hydration or exercise routine. Remember:
+              Your fitness journey is individual. Use these results as a
+              starting point and adjust your approach based on your body&apos;s
+              response and professional guidance.
+            </>
+          }
+          specificCaution={
+            <>
+              Hydration requirements vary with activity, climate, sweating and
+individual health. People with kidney disease, heart conditions
+              or prescribed fluid restrictions must follow their healthcare
+              professional&apos;s fluid recommendations rather than relying on
+              this estimate.
+            </>
+          }
+        />
+      </div>
 
       {/* Enhanced Interactive Result Card Preview */}
       {shareResult && (
