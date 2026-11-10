@@ -275,44 +275,44 @@ export default function BmiCalculator() {
           </div>
         </div>
 
-        {/* Health Disclaimer */}
-        <div className="mt-6">
-          <HealthDisclaimer
-            universalDisclaimer={
-              <>
-                The results provided are estimates based on general population
-                formulas and the information you have entered. They are
-                intended for general educational and fitness guidance, not as
-                a substitute for professional medical advice. Individual
-                requirements may vary depending on age, body composition,
-                activity level, lifestyle, health status and other personal
-                factors. These values should be treated as a starting
-                reference, not fixed targets. Health Notice: If you have an
-                existing medical condition, metabolic disorder, are taking
-                medication, are pregnant, or have specific dietary or exercise
-                restrictions, consult a qualified healthcare professional
-                before making changes to your diet, hydration or exercise
-                routine. Remember: Your fitness journey is individual. Use
-                these results as a starting point and adjust your approach
-                based on your body&apos;s response and professional guidance.
-              </>
-            }
-            specificCaution={
-              <>
-                BMI is a general screening measure and does not directly
-                measure body fat or determine an individual&apos;s health status.
-                Athletes, highly muscular individuals and people with different
-                body compositions may need additional assessment.
-              </>
-            }
-          />
-        </div>
-
         {/* BMI Categories */}
         <div className="rounded-xl bg-white p-4 sm:p-6 shadow-lg ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700">
           <h3 className="mb-4 text-lg font-semibold">BMI Categories</h3>
           <BMICategories />
         </div>
+      </div>
+
+      {/* Health Disclaimer */}
+      <div className="mt-8">
+        <HealthDisclaimer
+          universalDisclaimer={
+            <>
+              The results provided are estimates based on general population
+              formulas and the information you have entered. They are
+              intended for general educational and fitness guidance, not as a
+              substitute for professional medical advice. Individual
+              requirements may vary depending on age, body composition,
+              activity level, lifestyle, health status and other personal
+              factors. These values should be treated as a starting
+              reference, not fixed targets. Health Notice: If you have an
+              existing medical condition, metabolic disorder, are taking
+              medication, are pregnant, or have specific dietary or exercise
+              restrictions, consult a qualified healthcare professional
+              before making changes to your diet, hydration or exercise
+              routine. Remember: Your fitness journey is individual. Use
+              these results as a starting point and adjust your approach
+              based on your body&apos;s response and professional guidance.
+            </>
+          }
+          specificCaution={
+            <>
+              BMI is a general screening measure and does not directly
+              measure body fat or determine an individual&apos;s health status.
+              Athletes, highly muscular individuals and people with different
+              body compositions may need additional assessment.
+            </>
+          }
+        />
       </div>
 
       {/* Enhanced Interactive Result Card Preview */}
