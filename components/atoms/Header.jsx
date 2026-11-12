@@ -85,18 +85,10 @@ const Header = ({ darkMode, toggleDarkMode }) => {
               </li>
               <li>
                 <Link
-                  href="/#testimonials"
+                  href="/#approach"
                   className="hover:text-blue-600 dark:hover:text-blue-400"
                 >
-                  Testimonials
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/#contact"
-                  className="hover:text-blue-600 dark:hover:text-blue-400"
-                >
-                  Contact
+                  Our Approach
                 </Link>
               </li>
               <li className="relative" ref={dropdownRef}>
@@ -148,6 +140,22 @@ const Header = ({ darkMode, toggleDarkMode }) => {
                   </div>
                 )}
               </li>
+              <li>
+                <Link
+                  href="/#testimonials"
+                  className="hover:text-blue-600 dark:hover:text-blue-400"
+                >
+                  Testimonials
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/#contact"
+                  className="hover:text-blue-600 dark:hover:text-blue-400"
+                >
+                  Contact
+                </Link>
+              </li>
             </ul>
           </nav>
 
@@ -194,20 +202,11 @@ const Header = ({ darkMode, toggleDarkMode }) => {
               </li>
               <li>
                 <Link
-                  href="/#testimonials"
+                  href="/#approach"
                   onClick={closeMobile}
                   className="block rounded px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
-                  Testimonials
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/#contact"
-                  onClick={closeMobile}
-                  className="block rounded px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  Contact
+                  Our Approach
                 </Link>
               </li>
               <li>
@@ -230,6 +229,24 @@ const Header = ({ darkMode, toggleDarkMode }) => {
                     ))}
                   </ul>
                 </div>
+              </li>
+              <li>
+                <Link
+                  href="/#testimonials"
+                  onClick={closeMobile}
+                  className="block rounded px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Testimonials
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/#contact"
+                  onClick={closeMobile}
+                  className="block rounded px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Contact
+                </Link>
               </li>
             </ul>
           </nav>

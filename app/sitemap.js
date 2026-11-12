@@ -48,5 +48,35 @@ export default function sitemap() {
       changeFrequency: 'monthly',
       priority: 0.6,
     },
+    {
+      url: 'https://nutrisculpt.vercel.app/services/category/strength-fitness-performance',
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: 'https://nutrisculpt.vercel.app/services/category/pain-posture-movement',
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: 'https://nutrisculpt.vercel.app/services/category/metabolic-bone-health',
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: 'https://nutrisculpt.vercel.app/services/category/functional-fitness-life-stages',
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: 'https://nutrisculpt.vercel.app/services/category/fitness-education-independence',
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
   ];
 }
