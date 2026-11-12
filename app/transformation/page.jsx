@@ -218,8 +218,8 @@ export default function Transformation() {
 
           <div className="flex justify-center">
             <Link
-              href="/expert-connect"
-              className="rounded bg-green-600 px-8 py-3 text-center font-bold text-white shadow transition hover:bg-green-700"
+              href="/expert-connect?source=transformation&back=%2Ftransformation"
+              className="rounded bg-blue-600 px-8 py-3 text-center font-bold text-white shadow transition hover:bg-blue-700"
             >
               Connect to an expert
             </Link>

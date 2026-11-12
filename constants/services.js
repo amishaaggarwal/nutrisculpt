@@ -12,75 +12,24 @@ export const SERVICE_CATEGORIES = [
     title: "Personal Training & Strength Development",
     icon: "Dumbbell",
     description:
-      "Build strength and improve physical fitness through personalized one-on-one and small-group training, structured programming, and goal-focused coaching.",
+      "Build strength, improve fitness, and achieve meaningful physical goals through individualized exercise coaching and structured training programs suited to your needs and experience.",
     shortDescription:
       "Personalized strength training and goal-focused programming.",
-    subcategories: [
+    areas: [
       {
-        title: "Personal 1:1 Training",
+        title: "Strength & Resistance Training",
         description:
-          "Experience fully personalized training tailored to your goals, fitness level, and schedule. Each session is designed with precision to maximize results while prioritizing safety and proper form.",
-        href: "/services/personal-1-1-training",
+          "Focus on building strength, developing proper exercise technique, progressive resistance training and improving overall physical fitness.",
       },
       {
-        title: "Virtual 1:1 Training",
+        title: "Goal-Based Fitness Coaching",
         description:
-          "Expert online coaching via video call with live feedback and customized home or gym-friendly programming, available to clients in India and abroad.",
-        href: "/services/virtual-1-1-training",
+          "Support goals such as first pull-ups, stronger deadlifts, better plank endurance, general fitness improvement, body-composition goals and preparation for personal events.",
       },
       {
-        title: "Strength Development",
+        title: "Personalized Workout Programming",
         description:
-          "Progressive strength training focused on building strength through compound lifts and structured programming.",
-        href: "/expert-connect?back=/services/category/strength-fitness-performance",
-      },
-      {
-        title: "Deadlift Strength Goals",
-        description:
-          "Targeted deadlift technique and programming to develop posterior-chain strength safely and measurably.",
-        href: "/expert-connect?back=/services/category/strength-fitness-performance",
-      },
-      {
-        title: "Pull-up Development",
-        description:
-          "Progressive upper-body pulling strength development, from assisted variations to unassisted pull-ups.",
-        href: "/expert-connect?back=/services/category/strength-fitness-performance",
-      },
-      {
-        title: "Plank Endurance",
-        description:
-          "Core stability and endurance training using plank variations to build midline strength and control.",
-        href: "/expert-connect?back=/services/category/strength-fitness-performance",
-      },
-      {
-        title: "Athletic & Sports Performance",
-        description:
-          "Sport-specific training programs to enhance performance, speed, agility, and power for competitive athletes and sports enthusiasts.",
-        href: "/services/athletic-sports-performance",
-      },
-      {
-        title: "Body Composition and Fitness Goals",
-        description:
-          "Training and programming aimed at improving body composition and achieving measurable fitness goals.",
-        href: "/expert-connect?back=/services/category/strength-fitness-performance",
-      },
-      {
-        title: "Wedding & Special Occasion Preparation",
-        description:
-          "Event-focused training to help you feel strong, confident, and prepared for your special day.",
-        href: "/expert-connect?back=/services/category/strength-fitness-performance",
-      },
-      {
-        title: "Group Training",
-        description:
-          "Small group training sessions that combine motivation with personalized attention for an engaging and effective workout experience.",
-        href: "/services/group-training",
-      },
-      {
-        title: "Customized Training Programs",
-        description:
-          "Custom workout programs with detailed weekly plans designed specifically for your goals, complete with progression tracking.",
-        href: "/services/program-design",
+          "Provide individualized exercise plans according to experience, goals, equipment availability, schedule and progression needs.",
       },
     ],
   },
@@ -89,63 +38,24 @@ export const SERVICE_CATEGORIES = [
     title: "Exercise for Special Populations & Health-Focused Fitness",
     icon: "HeartPulse",
     description:
-      "Individualized exercise approaches for people with different health considerations, physical capabilities and exercise requirements. Exercise programming is complementary to appropriate medical care and does not replace diagnosis or clinical treatment.",
+      "Individualized exercise support for people with metabolic health concerns, older adults, bone-health considerations and youth, with appropriate screening and medical clearance when needed.",
     shortDescription:
       "Individualized exercise support for health considerations, complementary to medical care.",
-    subcategories: [
+    areas: [
       {
-        title: "Exercise considerations for metabolic conditions",
+        title: "Metabolic Health Exercise Support",
         description:
-          "Structured exercise support for people with metabolic conditions, designed to complement appropriate medical care.",
-        href: "/expert-connect?back=/services/category/metabolic-bone-health",
+          "Structured exercise support for people managing metabolic health concerns, designed to complement appropriate medical care. Screening or medical clearance may be advised before starting.",
       },
       {
-        title: "Diabetes-related fitness support",
+        title: "Active Ageing & Bone Health",
         description:
-          "Fitness programming that supports diabetes management alongside, not in place of, medical care from your healthcare team.",
-        href: "/expert-connect?back=/services/category/metabolic-bone-health",
+          "Strength, balance and bone-health-focused exercise for older adults and those with bone-health considerations, planned to support physical function alongside medical guidance when appropriate.",
       },
       {
-        title: "Bone-health-focused strength training",
+        title: "Youth & Age-Appropriate Fitness",
         description:
-          "Strength-focused exercise to support bone health alongside appropriate medical care.",
-        href: "/expert-connect?back=/services/category/metabolic-bone-health",
-      },
-      {
-        title: "Osteopenia-focused exercise programming",
-        description:
-          "Appropriately dosed exercise for osteopenia, designed to complement medical guidance.",
-        href: "/expert-connect?back=/services/category/metabolic-bone-health",
-      },
-      {
-        title: "Osteoporosis-focused exercise programming",
-        description:
-          "Safe, appropriately dosed exercise for osteoporosis focused on strength, balance and fall prevention, alongside medical care.",
-        href: "/expert-connect?back=/services/category/metabolic-bone-health",
-      },
-      {
-        title: "Exercise for older adults",
-        description:
-          "Age-appropriate strength, balance and mobility training for older adults.",
-        href: "/services/senior-fitness",
-      },
-      {
-        title: "Age-appropriate exercise",
-        description:
-          "Exercise programming tailored to different life stages and physical capabilities.",
-        href: "/expert-connect?back=/services/category/metabolic-bone-health",
-      },
-      {
-        title: "Health-focused fitness consultations",
-        description:
-          "Individualized exercise consultations oriented toward long-term health and physical function.",
-        href: "/expert-connect?back=/services/category/metabolic-bone-health",
-      },
-      {
-        title: "Health-Oriented Fitness Programming",
-        description:
-          "General fitness programming oriented toward long-term health and physical function.",
-        href: "/expert-connect?back=/services/category/metabolic-bone-health",
+          "Age-appropriate exercise for children and adolescents that builds movement skills, strength and healthy habits with consideration for developmental needs.",
       },
     ],
   },
@@ -154,57 +64,24 @@ export const SERVICE_CATEGORIES = [
     title: "Movement, Posture & Functional Fitness",
     icon: "PersonWalking",
     description:
-      "Improve movement quality, posture, mobility and physical function through individualized assessment and appropriate exercise programming.",
+      "Improve movement quality, posture, mobility and everyday physical function through individualized coaching and appropriate exercise programming for common movement concerns.",
     shortDescription:
       "Move better and stand taller with posture, mobility, and movement support.",
-    subcategories: [
+    areas: [
       {
-        title: "Functional Movement Assessment",
+        title: "Mobility & Postural Awareness",
         description:
-          "Comprehensive movement analysis with a detailed report identifying imbalances, mobility issues, and injury prevention strategies.",
-        href: "/services/functional-movement-testing",
+          "Improve joint mobility, alignment and postural awareness to support comfortable, efficient movement in daily life and training.",
       },
       {
-        title: "Posture Correction",
+        title: "Functional Strength for Daily Living",
         description:
-          "Targeted exercises to improve muscular balance, alignment, and everyday posture.",
-        href: "/services/posture-correction-mobility",
+          "Build practical strength, balance and physical function for everyday activities such as lifting, carrying, climbing stairs and sustained movement.",
       },
       {
-        title: "Back Discomfort and Movement Support",
+        title: "Movement Coaching for Common Discomforts",
         description:
-          "Exercise-based support for back discomfort, focused on mobility, strength, and movement confidence.",
-        href: "/expert-connect?back=/services/category/pain-posture-movement",
-      },
-      {
-        title: "Knee Discomfort and Movement Support",
-        description:
-          "Exercise-based support for knee discomfort, emphasizing lower-body strength and pain-free movement.",
-        href: "/expert-connect?back=/services/category/pain-posture-movement",
-      },
-      {
-        title: "Shoulder Discomfort and Movement Support",
-        description:
-          "Exercise-based support for shoulder discomfort, with mobility and stabilizing strength work.",
-        href: "/expert-connect?back=/services/category/pain-posture-movement",
-      },
-      {
-        title: "Mobility Training",
-        description:
-          "Dedicated mobility sessions to improve joint range of motion and movement quality.",
-        href: "/expert-connect?back=/services/category/pain-posture-movement",
-      },
-      {
-        title: "Exercise-Based Recovery Support",
-        description:
-          "Exercise-based corrective training to restore strength, enhance mobility, support healing, and prevent future injuries.",
-        href: "/services/rehabilitation-recovery",
-      },
-      {
-        title: "Movement Quality Improvement",
-        description:
-          "Movement screening and corrective programming to improve how you move in daily life and training.",
-        href: "/expert-connect?back=/services/category/pain-posture-movement",
+          "Exercise-based movement coaching for people with back, shoulder or knee concerns, focused on mobility, strength and movement confidence. Not a medical diagnosis or treatment.",
       },
     ],
   },
@@ -213,51 +90,24 @@ export const SERVICE_CATEGORIES = [
     title: "Athletic Performance & Conditioning",
     icon: "UserGroup",
     description:
-      "Sport-focused strength and conditioning to support performance goals through individualized exercise programming.",
+      "Sport-focused strength and conditioning support to improve performance capacity through individualized, progressive training based on your goals, experience and readiness.",
     shortDescription:
       "Strength and conditioning for athletic performance goals.",
-    subcategories: [
+    areas: [
       {
-        title: "Children and Adolescent Fitness",
+        title: "Athletic Strength & Power",
         description:
-          "Age-appropriate fitness for children and teens focused on fundamental movement skills, strength, and healthy habits.",
-        href: "/expert-connect?back=/services/category/functional-fitness-life-stages",
+          "Develop sport-relevant strength and power through progressive resistance training and structured programming tailored to your performance goals.",
       },
       {
-        title: "General Adult Fitness",
+        title: "Endurance & Conditioning",
         description:
-          "Well-rounded fitness programming for adults to build strength, stamina, and overall health.",
-        href: "/expert-connect?back=/services/category/functional-fitness-life-stages",
+          "Build cardiovascular fitness, work capacity and conditioning with training planned around your sport, schedule and current fitness level.",
       },
       {
-        title: "Senior Fitness Programs",
+        title: "Speed, Agility & Sport Readiness",
         description:
-          "Specialized fitness programs for older adults focusing on balance, strength, mobility, and maintaining independence and quality of life.",
-        href: "/services/senior-fitness",
-      },
-      {
-        title: "Functional Independence Training",
-        description:
-          "Training focused on maintaining physical independence and confidence in daily activities.",
-        href: "/expert-connect?back=/services/category/functional-fitness-life-stages",
-      },
-      {
-        title: "Activities of Daily Living (ADL) Support",
-        description:
-          "Exercise support to improve strength and mobility for everyday tasks such as lifting, climbing stairs, and carrying.",
-        href: "/expert-connect?back=/services/category/functional-fitness-life-stages",
-      },
-      {
-        title: "Balance and Mobility Training",
-        description:
-          "Balance and mobility work to reduce fall risk and support confident movement at any age.",
-        href: "/expert-connect?back=/services/category/functional-fitness-life-stages",
-      },
-      {
-        title: "Everyday Strength and Movement",
-        description:
-          "Practical strength and movement training that transfers directly to daily life.",
-        href: "/expert-connect?back=/services/category/functional-fitness-life-stages",
+          "Improve speed, agility and movement preparedness for sport and training demands with practical, progressive drills and conditioning work.",
       },
     ],
   },
@@ -266,61 +116,28 @@ export const SERVICE_CATEGORIES = [
     title: "Fitness Education & Independent Training",
     icon: "Book",
     description:
-      "Learn exercise technique, training principles and workout planning to develop the confidence to manage your own fitness journey.",
+      "Learn exercise technique, training principles and workout planning to build the knowledge and confidence needed to manage your own fitness journey effectively.",
     shortDescription:
       "Learn to train with confidence — technique, programming, and independence.",
-    subcategories: [
+    areas: [
       {
-        title: "Beginner Fitness Education",
+        title: "Exercise Fundamentals & Technique",
         description:
-          "Foundations of exercise technique, gym confidence, and how to start training safely.",
-        href: "/expert-connect?back=/services/category/fitness-education-independence",
+          "Develop proper exercise technique, safe movement habits and gym confidence through clear coaching on foundational exercises.",
       },
       {
-        title: "Intermediate Fitness Education",
+        title: "Training Principles & Progression",
         description:
-          "Build on the basics with structured programming, exercise selection, and training concepts.",
-        href: "/expert-connect?back=/services/category/fitness-education-independence",
+          "Understand workout structure, progressive overload and key training principles so you can train with purpose and adapt over time.",
       },
       {
-        title: "Exercise Technique and Form",
+        title: "Independent Workout Planning",
         description:
-          "Coaching on proper exercise technique to train safely and effectively.",
-        href: "/expert-connect?back=/services/category/fitness-education-independence",
-      },
-      {
-        title: "Understanding Training Principles",
-        description:
-          "Learn how training adaptations work: overload, progression, specificity, and recovery.",
-        href: "/expert-connect?back=/services/category/fitness-education-independence",
-      },
-      {
-        title: "Workout Planning",
-        description:
-          "How to structure weekly workouts, sets, reps, and rest to match your goals.",
-        href: "/expert-connect?back=/services/category/fitness-education-independence",
-      },
-      {
-        title: "Training Progression",
-        description:
-          "How to progress training over time through appropriate increases in load, volume, and intensity.",
-        href: "/expert-connect?back=/services/category/fitness-education-independence",
-      },
-      {
-        title: "Independent Fitness Development",
-        description:
-          "Develop the knowledge and confidence to plan and manage your own fitness journey.",
-        href: "/expert-connect?back=/services/category/fitness-education-independence",
+          "Learn to plan and organize your own workouts based on goals, schedule and available equipment with confidence and clarity.",
       },
     ],
   },
 ];
-
-export const BRAND_POSITIONING =
-  "A science-informed fitness and exercise coaching brand focused on strength development, special populations, functional fitness and long-term physical independence.";
-
-export const BRAND_MESSAGE =
-  "Fitness is not one-size-fits-all. Your training shouldn't be either.";
 
 export const QUALIFICATIONS = [
   {
@@ -378,3 +195,34 @@ export const CATEGORY_ICONS = {
   UserGroup: faUserGroup,
   Book: faBook,
 };
+
+export const ENQUIRY_SERVICE_OPTIONS = [
+  {
+    value: "strength-fitness-performance",
+    label: "Personal Training & Strength Development",
+  },
+  {
+    value: "metabolic-bone-health",
+    label: "Exercise for Special Populations & Health-Focused Fitness",
+  },
+  {
+    value: "pain-posture-movement",
+    label: "Movement, Posture & Functional Fitness",
+  },
+  {
+    value: "functional-fitness-life-stages",
+    label: "Athletic Performance & Conditioning",
+  },
+  {
+    value: "fitness-education-independence",
+    label: "Fitness Education & Independent Training",
+  },
+  {
+    value: "not-sure",
+    label: "Not Sure Yet — Help Me Choose",
+  },
+];
+
+export const ENQUIRY_CATEGORY_ALLOWLIST = new Set(
+  ENQUIRY_SERVICE_OPTIONS.map((option) => option.value)
+);

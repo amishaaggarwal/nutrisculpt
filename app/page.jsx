@@ -144,30 +144,32 @@ const Home = () => {
               find the right approach for your goals.
             </p>
           </div>
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-6">
             {SERVICE_CATEGORIES.map((category, index) => (
               <motion.div
                 key={category.slug}
                 initial={{ scale: 0.95, opacity: 0 }}
                 whileInView={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="rounded-lg bg-white p-6 shadow-sm dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                className={`flex h-full min-h-[22rem] flex-col rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800 lg:col-span-2 ${
+                  index === 3 ? "lg:col-start-2" : ""
+                } ${index === 4 ? "sm:col-span-2 sm:w-[calc(50%-1rem)] sm:justify-self-center lg:col-span-2 lg:w-auto lg:justify-self-stretch" : ""}`}
               >
-                <div className="mx-auto w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-4">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
                   <FontAwesomeIcon
                     icon={CATEGORY_ICONS[category.icon]}
                     className="h-6 w-6"
                   />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                <h3 className="mb-2 min-h-[3.5rem] text-center text-xl font-bold text-gray-900 dark:text-white">
                   {category.title}
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-5">
+                <p className="mb-6 flex-1 text-center text-gray-600 dark:text-gray-400">
                   {category.shortDescription}
                 </p>
                 <Link
                   href={`/services/category/${category.slug}`}
-                  className="block text-center rounded-lg bg-blue-600 px-4 py-2.5 font-semibold text-white shadow transition hover:bg-blue-700"
+                  className="mt-auto block w-full rounded-lg bg-blue-600 px-4 py-2.5 text-center font-semibold text-white shadow transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
                 >
                   Explore Services →
                 </Link>
@@ -375,8 +377,8 @@ const Home = () => {
           </div>
           <div className="mt-12 flex justify-center">
             <Link
-              href="/expert-connect"
-              className="rounded bg-green-600 px-8 py-3 font-bold text-white shadow transition hover:bg-green-700"
+              href="/expert-connect?source=homepage&back=%2F%23testimonials"
+              className="rounded bg-blue-600 px-8 py-3 font-bold text-white shadow transition hover:bg-blue-700"
             >
               Connect to an expert
             </Link>
