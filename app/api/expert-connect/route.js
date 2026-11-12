@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ENQUIRY_CATEGORY_ALLOWLIST, ENQUIRY_SERVICE_OPTIONS } from "@/constants/services";
+import { createEnquiry } from "@/lib/enquiries";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[0-9][0-9\s()-]{5,20}$/;
@@ -120,47 +121,48 @@ export async function POST(request) {
       safeCoachingPreference === "In-person 1:1 coaching" ? city : "";
     const safeSource = SOURCE_ALLOWLIST.has(requestedSource) ? requestedSource : "direct";
 
-    const GOOGLE_SCRIPT_URL = process.env.GOOGLE_APPS_SCRIPT_URL || "";
-    if (!GOOGLE_SCRIPT_URL) {
-      return NextResponse.json(
-        { error: "Enquiry service is not configured. Please try again later." },
-        { status: 500 }
-      );
-    }
-
+    const submittedAt = new Date().toISOString();
     const payload = {
       fullName,
       email: hasEmail ? email : "",
       countryCode: hasPhone ? countryCode : "",
       phoneNumber: hasPhone ? phoneNumber : "",
       selectedServiceCategory: validCategory,
-      selectedServiceCategoryLabel: selectedCategoryLabel,
+      selectedServiceCategoryLabel,
       primaryGoal,
       coachingPreference: safeCoachingPreference,
       ageGroup: safeAgeGroup,
       city: safeCity,
       source: safeSource,
-      submittedAt: new Date().toISOString(),
-      enquiryStatus: "new",
+      submittedAt,
+      status: "new",
     };
 
-    const response = await fetch(GOOGLE_SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    await createEnquiry(payload);
 
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: "We couldn't save your enquiry. Please try again." },
-        { status: 502 }
-      );
+    const GOOGLE_SCRIPT_URL = process.env.GOOGLE_APPS_SCRIPT_URL || "";
+    let data = "";
+    if (GOOGLE_SCRIPT_URL) {
+      try {
+        const response = await fetch(GOOGLE_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...payload,
+            enquiryStatus: "new",
+          }),
+        });
+        if (response.ok) {
+          data = await response.text();
+        }
+      } catch {
+        // Local enquiry is the source of truth for the admin dashboard.
+      }
     }
 
-    const data = await response.text();
     recentSubmissions.set(ip, now);
     return NextResponse.json({ success: true, data });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "We couldn't save your enquiry. Please try again." },
       { status: 500 }
