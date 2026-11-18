@@ -10,3 +10,17 @@
 body {
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Respect the user's reduced-motion preference. When requested, disable
+   CSS transitions and animations while keeping layout and content intact. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+    scroll-behavior: auto !important;
+  }
+}
+

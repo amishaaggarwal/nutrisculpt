@@ -6,62 +6,68 @@ import Image from "next/image";
 import CircularProgress from "./CircularProgress";
 
 const CALCULATOR_CONFIGS = {
-  bmi: { icon: "⚖️", label: "BMI", color: "#00F5A0", maxValue: 40, unit: null },
+  bmi: {
+    icon: "⚖️",
+    label: "BMI",
+    color: "#00F5A0",
+    unit: null,
+    ringLabel: "BMI",
+  },
   calorie: {
     icon: "🔥",
     label: "CALORIES",
     color: "#FF6B35",
-    maxValue: 3000,
     unit: "kcal/day",
+    ringLabel: "Estimate",
   },
   tdee: {
     icon: "🔥",
     label: "TDEE",
     color: "#FF6B35",
-    maxValue: 3000,
     unit: "kcal/day",
+    ringLabel: "Estimate",
   },
   bmr: {
     icon: "🔥",
     label: "BMR",
     color: "#FF6B35",
-    maxValue: 2500,
     unit: "kcal/day",
+    ringLabel: "Estimate",
   },
   macro: {
     icon: "🥗",
     label: "MACROS",
     color: "#00D9FF",
-    maxValue: 100,
     unit: "g",
+    ringLabel: "Split",
   },
   water: {
     icon: "💧",
     label: "WATER",
     color: "#00D9FF",
-    maxValue: 4,
     unit: "L/day",
+    ringLabel: "Estimate",
   },
   heart: {
     icon: "❤️",
     label: "HEART RATE",
     color: "#EF4444",
-    maxValue: 200,
     unit: "bpm",
+    ringLabel: "Estimate",
   },
   idealWeight: {
     icon: "🎯",
     label: "IDEAL WEIGHT",
     color: "#8B5CF6",
-    maxValue: 100,
     unit: "kg",
+    ringLabel: "Reference",
   },
   oneRm: {
     icon: "💪",
     label: "1RM",
     color: "#F59E0B",
-    maxValue: 200,
     unit: null,
+    ringLabel: "1RM Est.",
   },
 };
 
@@ -85,11 +91,20 @@ const getColorByType = (type, value) => {
   return colorMaps[type] || CALCULATOR_CONFIGS[type]?.color || "#00F5A0";
 };
 
-const getProgress = (type, value) => {
-  const config = CALCULATOR_CONFIGS[type];
-  if (!config) return 75;
-  if (type === "macro" || type === "idealWeight") return 75;
-  return Math.min((parseFloat(value) / config.maxValue) * 100, 100);
+/**
+ * Returns a genuine percentage only when one is explicitly supplied.
+ *
+ * The previous implementation derived a percentage by dividing the result by
+ * an arbitrary per-type maximum (e.g. BMI / 40). That value had no scientific
+ * meaning and implied a health or progress score. Cards now render a
+ * decorative ring with a descriptive centre label instead, so no percentage is
+ * fabricated. Pass `progress` (0-100) to opt back into a real percentage.
+ */
+const getRingProgress = (explicitProgress) => {
+  if (typeof explicitProgress !== "number" || !isFinite(explicitProgress)) {
+    return null;
+  }
+  return Math.max(0, Math.min(100, explicitProgress));
 };
 
 const ResultCard = forwardRef(
@@ -102,26 +117,28 @@ const ResultCard = forwardRef(
       aspectRatio = "square",
       className = "",
       unit = null,
+      progress: progressValue = null,
       ...props
     },
     ref
   ) => {
     const config = CALCULATOR_CONFIGS[type] || CALCULATOR_CONFIGS.bmi;
-    const progressPercentage = getProgress(type, value);
+    const ringProgress = getRingProgress(progressValue);
     const currentColor = getColorByType(type, value);
-    const [progress, setProgress] = useState(0);
+    const [animatedProgress, setAnimatedProgress] = useState(0);
     const displayUnit = unit || config.unit;
 
     useEffect(() => {
-      const timer = setTimeout(() => setProgress(progressPercentage), 300);
+      const target = ringProgress === null ? 100 : ringProgress;
+      const timer = setTimeout(() => setAnimatedProgress(target), 300);
       return () => clearTimeout(timer);
-    }, [progressPercentage]);
+    }, [ringProgress]);
 
     return (
       <div
         ref={ref}
         data-shareable-card
-        className={`relative w-80 h-80 ${className}`}
+        className={`relative w-full sm:w-80 h-80 ${className}`}
         style={{
           backgroundColor: "#0f172a",
           border: "1px solid #374151",
@@ -183,13 +200,15 @@ const ResultCard = forwardRef(
             )}
           </div>
 
-          {/* Circular Progress */}
+          {/* Circular indicator (decorative unless a real percentage is given) */}
           <div className="mb-3">
             <CircularProgress
-              percentage={progressPercentage}
+              percentage={animatedProgress}
+              label={ringProgress === null ? config.ringLabel || null : null}
               size={50}
               strokeWidth={5}
               color={currentColor}
+              decorative={ringProgress === null}
             />
           </div>
 
@@ -220,7 +239,7 @@ const ResultCard = forwardRef(
         {/* Footer */}
         <div className="absolute bottom-0 left-0 right-0 h-16 flex items-center justify-center px-4">
           <div className="text-xs font-bold text-center" style={{ color: currentColor }}>
-            NOURISHING BODIES • SCULPTING GREATNESS
+            NOURISHING BODIES &amp; SCULPTING GREATNESS
           </div>
         </div>
       </div>

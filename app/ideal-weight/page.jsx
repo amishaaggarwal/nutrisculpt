@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -10,6 +9,12 @@ import ResultCard from "@/components/atoms/ResultCard";
 import ResultExplanation from "@/components/atoms/ResultExplanation";
 import HealthDisclaimer from "@/components/atoms/HealthDisclaimer";
 import { useShareableImage } from "@/hooks/useShareableImage";
+import CalculatorNextStep from "@/components/atoms/CalculatorNextStep";
+import {
+  calculateIdealWeight,
+  calculateAllIdealWeights,
+  idealWeightHealthyRange,
+} from "@/lib/calculators";
 
 // Utility functions
 const round = (value, digits = 1) => {
@@ -30,52 +35,11 @@ const conversions = {
   ftInToCm: (ft, inches) => round((ft * 12 + inches) * 2.54, 1),
 };
 
-// Ideal weight calculation formulas
-const idealWeightFormulas = {
-  robinson: (heightCm, gender) => {
-    const heightInches = heightCm / 2.54;
-    if (gender === "male") {
-      return 52 + 1.9 * (heightInches - 60);
-    } else {
-      return 49 + 1.7 * (heightInches - 60);
-    }
-  },
-  miller: (heightCm, gender) => {
-    const heightInches = heightCm / 2.54;
-    if (gender === "male") {
-      return 56.2 + 1.41 * (heightInches - 60);
-    } else {
-      return 53.1 + 1.36 * (heightInches - 60);
-    }
-  },
-  devine: (heightCm, gender) => {
-    const heightInches = heightCm / 2.54;
-    if (gender === "male") {
-      return 50 + 2.3 * (heightInches - 60);
-    } else {
-      return 45.5 + 2.3 * (heightInches - 60);
-    }
-  },
-  hamwi: (heightCm, gender) => {
-    const heightInches = heightCm / 2.54;
-    if (gender === "male") {
-      return 48 + 2.7 * (heightInches - 60);
-    } else {
-      return 45.5 + 2.2 * (heightInches - 60);
-    }
-  },
-  bmi: (heightCm) => {
-    const heightM = heightCm / 100;
-    const idealBMI = 22; // Middle of healthy BMI range
-    return idealBMI * heightM * heightM;
-  },
-};
-
-// Body frame types
+// Body frame types (for UI selection only — adjustments are not scientifically validated)
 const FRAME_TYPES = [
-  { value: "small", label: "Small Frame", adjustment: -0.9 },
-  { value: "medium", label: "Medium Frame", adjustment: 1.0 },
-  { value: "large", label: "Large Frame", adjustment: 1.1 },
+  { value: "small", label: "Small Frame" },
+  { value: "medium", label: "Medium Frame" },
+  { value: "large", label: "Large Frame" },
 ];
 
 export default function IdealWeightCalculator() {
@@ -104,77 +68,51 @@ export default function IdealWeightCalculator() {
     }
   };
 
-  // Calculate ideal weights using different formulas
-  const idealWeights = useMemo(() => {
-    const heightCm = height.cm;
-    if (!heightCm || heightCm < 100) return {};
-
-    const frameAdjustment = FRAME_TYPES.find(f => f.value === frameType)?.adjustment || 1.0;
-    
-    const results = {};
-    Object.entries(idealWeightFormulas).forEach(([formula, calculate]) => {
-      try {
-        let result;
-        if (formula === "bmi") {
-          result = calculate(heightCm);
-        } else {
-          result = calculate(heightCm, gender);
-        }
-        
-        // Apply frame adjustment (except for BMI method)
-        if (formula !== "bmi") {
-          result = result * frameAdjustment;
-        }
-        
-        results[formula] = {
-          kg: round(result, 1),
-          lb: round(conversions.kgToLb(result), 1),
-        };
-      } catch {
-        results[formula] = { kg: 0, lb: 0 };
-      }
+  // Primary result: BMI-based weight-for-height reference (BMI = 22)
+  const referenceWeight = useMemo(() => {
+    return calculateIdealWeight({
+      heightCm: height.cm,
+      gender,
+      formulaId: "bmi",
     });
+  }, [height.cm, gender]);
 
-    // Calculate average
-    const validResults = Object.values(results).filter(r => r.kg > 0);
-    if (validResults.length > 0) {
-      const avgKg = validResults.reduce((sum, r) => sum + r.kg, 0) / validResults.length;
-      results.average = {
-        kg: round(avgKg, 1),
-        lb: round(conversions.kgToLb(avgKg), 1),
-      };
-    }
-
-    return results;
+  // Historical formulas for educational comparison only
+  const historicalWeights = useMemo(() => {
+    return calculateAllIdealWeights({
+      heightCm: height.cm,
+      gender,
+      frameType,
+    });
   }, [height.cm, gender, frameType]);
 
-  // Calculate healthy weight range
+  // Remove the BMI method from historical list since it's the primary reference
+  const historicalList = useMemo(() => {
+    if (!historicalWeights) return {};
+    const { bmi, average, ...rest } = historicalWeights;
+    return rest;
+  }, [historicalWeights]);
+
+  // Healthy weight range (BMI 18.5-24.9)
   const healthyRange = useMemo(() => {
-    const heightM = height.cm / 100;
-    if (heightM <= 0) return null;
-
-    const minKg = 18.5 * heightM * heightM;
-    const maxKg = 24.9 * heightM * heightM;
-
-    return {
-      min: { kg: round(minKg, 1), lb: round(conversions.kgToLb(minKg), 1) },
-      max: { kg: round(maxKg, 1), lb: round(conversions.kgToLb(maxKg), 1) },
-    };
+    return idealWeightHealthyRange(height.cm);
   }, [height.cm]);
 
   // Prepare share data for ideal weight results
   const shareResult = useMemo(() => {
-    if (!idealWeights.average || !healthyRange) return null;
+    if (!referenceWeight || !healthyRange) return null;
     
+    const rangeValue = unitSystem === 'metric'
+      ? `${healthyRange.min.kg}-${healthyRange.max.kg} kg`
+      : `${healthyRange.min.lb}-${healthyRange.max.lb} lbs`;
+
     return validateResultForPrivacy({
-      value: idealWeights.average[unitSystem === 'metric' ? 'kg' : 'lb'],
+      value: rangeValue,
       unit: unitSystem === 'metric' ? 'kg' : 'lbs',
-      frameType: FRAME_TYPES.find(f => f.value === frameType)?.label || 'Medium Frame',
-      healthyRange: unitSystem === 'metric' 
-        ? `${healthyRange.min.kg}-${healthyRange.max.kg} kg`
-        : `${healthyRange.min.lb}-${healthyRange.max.lb} lbs`
+      healthyRange: rangeValue,
+      referencePoint: round(referenceWeight, 1),
     }, ['height', 'age', 'gender']); // Exclude sensitive input data
-  }, [idealWeights.average, healthyRange, unitSystem, frameType, validateResultForPrivacy]);
+  }, [referenceWeight, healthyRange, unitSystem, validateResultForPrivacy]);
 
   const shareData = useMemo(() => {
     if (!shareResult) return null;
@@ -197,9 +135,12 @@ export default function IdealWeightCalculator() {
         <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
           Ideal Weight Calculator
         </h2>
-        <p className="mt-3 text-gray-600 dark:text-gray-300">
-          Calculate your ideal body weight using multiple scientific formulas
-        </p>
+          <p className="mt-3 text-gray-600 dark:text-gray-300">
+            Calculate your ideal body weight using multiple scientific formulas
+          </p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Example values shown — enter your own data for personalized results
+          </p>
       </motion.div>
 
       {/* Input Form */}
@@ -325,27 +266,50 @@ export default function IdealWeightCalculator() {
       </motion.div>
 
       {/* Results Section */}
-      {idealWeights.average && (
+      {referenceWeight && (
         <>
-          {/* Average Result - Highlighted */}
+          {/* Primary Result: Healthy Weight Range (BMI 18.5–24.9) */}
+          {healthyRange && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="mt-8 rounded-xl bg-gradient-to-r from-emerald-100 to-blue-100 p-6 text-center shadow-lg dark:from-emerald-900/30 dark:to-blue-900/30"
+            >
+              <h3 className="mb-4 text-lg font-semibold">
+                Weight-for-Height Reference Range
+              </h3>
+              <p className="text-5xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400">
+                {unitSystem === "metric"
+                  ? `${healthyRange.min.kg} - ${healthyRange.max.kg} kg`
+                  : `${healthyRange.min.lb} - ${healthyRange.max.lb} lbs`}
+              </p>
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                Population-level reference (BMI 18.5–24.9), not an individualized target
+              </p>
+            </motion.div>
+          )}
+
+          {/* BMI 22 reference point (educational) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="mt-8 rounded-xl bg-gradient-to-r from-emerald-100 to-blue-100 p-6 text-center shadow-lg dark:from-emerald-900/30 dark:to-blue-900/30"
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="mt-8 rounded-xl bg-white p-6 shadow-lg ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700"
           >
-            <h3 className="mb-4 text-lg font-semibold">Recommended Ideal Weight</h3>
-            <p className="text-5xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400">
-              {unitSystem === "metric" ? idealWeights.average.kg : idealWeights.average.lb}
-              <span className="text-lg font-normal ml-2">
-                {unitSystem === "metric" ? "kg" : "lbs"}
-              </span>
-            </p>
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              Average of all formulas
-            </p>
-            
-
+            <h3 className="mb-4 text-center text-lg font-semibold">
+              Middle of Reference Range (BMI 22)
+            </h3>
+            <div className="text-center">
+              <p className="text-4xl font-bold text-gray-700 dark:text-gray-300">
+                {unitSystem === "metric"
+                  ? `${round(referenceWeight, 1)} kg`
+                  : `${round(conversions.kgToLb(referenceWeight), 1)} lbs`}
+              </p>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                Educational reference point only — not a prescribed target
+              </p>
+            </div>
           </motion.div>
 
           {/* Educational explanation */}
@@ -353,86 +317,76 @@ export default function IdealWeightCalculator() {
             <ResultExplanation
               whatItMeans={
                 <>
-                  Your estimated{" "}
-                  <span className="font-semibold">ideal weight</span> is{" "}
-                  {unitSystem === "metric" ? idealWeights.average.kg : idealWeights.average.lb}{" "}
-                  {unitSystem === "metric" ? "kg" : "lbs"}, calculated using
-                  several general weight estimation formulas based on your
-                  height, gender, and body frame.
+                  The weight-for-height reference range for your height is{" "}
+                  {unitSystem === "metric"
+                    ? `${healthyRange.min.kg} - ${healthyRange.max.kg} kg`
+                    : `${healthyRange.min.lb} - ${healthyRange.max.lb} lbs`},
+                  based on a healthy BMI of 18.5–24.9. The middle of this
+                  range (BMI 22) corresponds to approximately{" "}
+                  {unitSystem === "metric"
+                    ? round(referenceWeight, 1)
+                    : round(conversions.kgToLb(referenceWeight), 1)}{" "}
+                  {unitSystem === "metric" ? "kg" : "lbs"}.
                 </>
               }
               whyItMatters={
                 <>
-                  These formulas can give you a rough idea of what a healthy
-                  weight range might look like for your body type. They can
-                  be useful for setting general goals and understanding where
-                  you fall relative to standard reference ranges.
+                  This is a population-based reference. Individual healthy
+                  weight varies with body composition, muscle mass, bone
+                  density, and other factors. Use it as a general guide, not
+                  a prescribed target.
                 </>
               }
               limitations={
                 <>
-                  Different formulas may produce different results because
-                  they use different assumptions. Muscle mass, bone structure,
-                  body composition, age, and individual circumstances all
-                  affect what a healthy weight looks like for you. This value
-                  is not a universal healthy-weight target — it is an estimate,
-                  and health is about much more than a number on a scale.
+                  Weight-for-height references do not account for individual
+                  body composition or health circumstances. Historical
+                  equations (Robinson, Miller, Devine, Hamwi) may produce
+                  different numbers because they use different assumptions
+                  and were derived from specific populations. They are shown
+                  below for educational comparison only.
                 </>
               }
             />
           </div>
 
-          {/* Individual Formula Results */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="mt-8 rounded-xl bg-white p-6 shadow-lg ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700"
-          >
-            <h3 className="mb-6 text-center text-lg font-semibold">
-              Formula Breakdown
-            </h3>
-            
-            <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-              {Object.entries(idealWeights)
-                .filter(([formula]) => formula !== "average")
-                .map(([formula, result]) => (
-                <div
-                  key={formula}
-                  className="rounded-lg bg-gray-50 p-4 text-center dark:bg-gray-700/50"
-                >
-                  <h5 className="mb-2 font-semibold capitalize">
-                    {formula === "bmi" ? "BMI Method" : `${formula.charAt(0).toUpperCase() + formula.slice(1)} Formula`}
-                  </h5>
-                  <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                    {unitSystem === "metric" ? result.kg : result.lb}
-                    <span className="text-sm font-normal ml-1">
-                      {unitSystem === "metric" ? "kg" : "lbs"}
-                    </span>
-                  </p>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Healthy Weight Range */}
-          {healthyRange && (
+          {/* Historical formula comparison (educational context only) */}
+          {Object.keys(historicalList).length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.6 }}
               className="mt-8 rounded-xl bg-white p-6 shadow-lg ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700"
             >
-              <h3 className="mb-4 text-center text-lg font-semibold">
-                Healthy Weight Range (BMI 18.5-24.9)
+              <h3 className="mb-6 text-center text-lg font-semibold">
+                Historical Estimation Formulas (Educational Context)
               </h3>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-gray-700 dark:text-gray-300">
-                  {unitSystem === "metric" 
-                    ? `${healthyRange.min.kg} - ${healthyRange.max.kg} kg`
-                    : `${healthyRange.min.lb} - ${healthyRange.max.lb} lbs`
-                  }
-                </p>
+              <p className="text-center text-sm text-gray-600 dark:text-gray-400 mb-6">
+                These historical equations are presented for educational
+                comparison only. They are not scientifically validated
+                individualized targets and should not be used as personal
+                weight goals. They may disagree with the BMI-based reference
+                because they were derived from different populations and
+                use different formulas.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                {Object.entries(historicalList).map(([formula, result]) => (
+                  <div
+                    key={formula}
+                    className="rounded-lg bg-gray-50 p-4 text-center dark:bg-gray-700/50"
+                  >
+                    <h5 className="mb-2 font-semibold capitalize text-xs">
+                      {formula.charAt(0).toUpperCase() + formula.slice(1)}
+                      Formula
+                    </h5>
+                    <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                      {unitSystem === "metric" ? result.kg : result.lb}
+                      <span className="text-sm font-normal ml-1">
+                        {unitSystem === "metric" ? "kg" : "lbs"}
+                      </span>
+                    </p>
+                  </div>
+                ))}
               </div>
             </motion.div>
           )}
@@ -452,12 +406,21 @@ export default function IdealWeightCalculator() {
         <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
           <div className="space-y-2">
             <h4 className="font-medium text-purple-600 dark:text-purple-400">
-              About These Calculations:
+              About This Reference:
             </h4>
             <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-              <li>• These formulas provide estimates based on height and gender</li>
-              <li>• Individual results may vary based on muscle mass and bone density</li>
-              <li>• Frame size adjustments help personalize results</li>
+              <li>
+                • The primary reference uses a BMI of 22 (middle of the
+                healthy range 18.5–24.9)
+              </li>
+              <li>
+                • Historical formulas (Robinson, Miller, Devine, Hamwi) are
+                shown for educational comparison only
+              </li>
+              <li>
+                • Frame-size adjustments are not scientifically validated as
+                individualized targets
+              </li>
             </ul>
           </div>
           <div className="space-y-2">
@@ -522,8 +485,10 @@ export default function IdealWeightCalculator() {
               <ResultCard
                 type="idealWeight"
                 value={shareResult.value}
-                category={shareResult.frameType}
-                subtitle={`Healthy range: ${shareResult.healthyRange}`}
+                category="Weight-for-height reference"
+                subtitle={shareResult.referencePoint
+                  ? `Middle reference (BMI 22): ${shareResult.referencePoint} ${shareResult.unit}`
+                  : `Healthy range: ${shareResult.healthyRange}`}
                 aspectRatio="square"
               />
             </div>
@@ -539,6 +504,31 @@ export default function IdealWeightCalculator() {
         </div>
       )}
 
+      {/* Calculator Next Step */}
+      <CalculatorNextStep
+        heading="What's Next"
+        description={
+          <>
+            The weight-for-height range is a population reference, not a
+            prescribed individual weight target. Explore your broader fitness
+            picture or learn to train independently.
+          </>
+        }
+        source="calculator-ideal-weight"
+        calculatorId="ideal-weight"
+        showEnquiry={true}
+        primaryCta={{
+          label: "Explore Your Fitness & Health Snapshot",
+          href: "/transformation",
+        }}
+        secondaryLinks={[
+          {
+            label: "Fitness Education & Independent Training",
+            href: "/services/category/fitness-education-independence",
+          },
+        ]}
+      />
+
       {/* Hidden Shareable Card for Image Generation */}
       {shareResult && (
         <div className="fixed -top-[9999px] -left-[9999px] pointer-events-none">
@@ -546,8 +536,10 @@ export default function IdealWeightCalculator() {
             ref={shareableCardRef}
             type="idealWeight"
             value={shareResult.value}
-            category={shareResult.frameType}
-            subtitle={`Healthy range: ${shareResult.healthyRange}`}
+            category="Weight-for-height reference"
+            subtitle={shareResult.referencePoint
+              ? `Middle reference (BMI 22): ${shareResult.referencePoint} ${shareResult.unit}`
+              : `Healthy range: ${shareResult.healthyRange}`}
           />
         </div>
       )}

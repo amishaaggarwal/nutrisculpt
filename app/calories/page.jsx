@@ -9,6 +9,14 @@ import ResultCard from "@/components/atoms/ResultCard";
 import ResultExplanation from "@/components/atoms/ResultExplanation";
 import HealthDisclaimer from "@/components/atoms/HealthDisclaimer";
 import { useShareableImage } from "@/hooks/useShareableImage";
+import CalculatorNextStep from "@/components/atoms/CalculatorNextStep";
+import {
+  calculateBMR,
+  calculateTDEE,
+  calculateTargetCalories,
+  ACTIVITY_LEVELS,
+  CALORIE_GOALS,
+} from "@/lib/calculators";
 
 // Utility functions
 const round = (value, digits = 0) => {
@@ -27,62 +35,6 @@ const conversions = {
     return { ft, in: inches };
   },
   ftInToCm: (ft, inches) => round((ft * 12 + inches) * 2.54, 1),
-};
-
-// Activity levels for calorie calculation
-const ACTIVITY_LEVELS = [
-  {
-    value: 1.2,
-    label: "Sedentary",
-    description: "Little to no exercise",
-  },
-  {
-    value: 1.375,
-    label: "Lightly Active",
-    description: "Light exercise 1-3 days/week",
-  },
-  {
-    value: 1.55,
-    label: "Moderately Active",
-    description: "Moderate exercise 3-5 days/week",
-  },
-  {
-    value: 1.725,
-    label: "Very Active",
-    description: "Hard exercise 6-7 days/week",
-  },
-  {
-    value: 1.9,
-    label: "Extremely Active",
-    description: "Very hard exercise, physical job",
-  },
-];
-
-// Goals for calorie adjustment
-const CALORIE_GOALS = [
-  { value: -500, label: "Lose Weight", description: "1 lb/week loss" },
-  { value: -250, label: "Mild Weight Loss", description: "0.5 lb/week loss" },
-  { value: 0, label: "Maintain Weight", description: "Current weight" },
-  { value: 250, label: "Mild Weight Gain", description: "0.5 lb/week gain" },
-  { value: 500, label: "Gain Weight", description: "1 lb/week gain" },
-];
-
-// Calorie calculation utilities
-const calorieUtils = {
-  calculateBMR: (weight, height, age, gender) => {
-    // Mifflin-St Jeor Equation
-    if (gender === "male") {
-      return 10 * weight + 6.25 * height - 5 * age + 5;
-    } else {
-      return 10 * weight + 6.25 * height - 5 * age - 161;
-    }
-  },
-  calculateTDEE: (bmr, activityLevel) => {
-    return bmr * activityLevel;
-  },
-  adjustForGoal: (tdee, goalAdjustment) => {
-    return tdee + goalAdjustment;
-  },
 };
 
 export default function CalorieCalculator() {
@@ -127,16 +79,16 @@ export default function CalorieCalculator() {
     }
   };
 
-  // Calculate calories
+  // Calculate calories using verified helpers
   const { bmr, tdee, targetCalories } = useMemo(() => {
-    const bmr = calorieUtils.calculateBMR(weight.kg, height.cm, age, gender);
-    const tdee = calorieUtils.calculateTDEE(bmr, activityLevel);
-    const targetCalories = calorieUtils.adjustForGoal(tdee, goal);
+    const bmr = calculateBMR(weight.kg, height.cm, age, gender);
+    const tdee = calculateTDEE(bmr, activityLevel);
+    const targetCalories = calculateTargetCalories(tdee, goal);
 
     return {
-      bmr: round(bmr),
-      tdee: round(tdee),
-      targetCalories: round(targetCalories),
+      bmr: bmr ? round(bmr) : 0,
+      tdee: tdee ? round(tdee) : 0,
+      targetCalories: targetCalories ? round(targetCalories) : 0,
     };
   }, [weight.kg, height.cm, age, gender, activityLevel, goal]);
 
@@ -144,6 +96,11 @@ export default function CalorieCalculator() {
     (level) => level.value === activityLevel,
   );
   const selectedGoal = CALORIE_GOALS.find((g) => g.value === goal);
+
+  // Sex coefficient explanation for Mifflin-St Jeor
+  const sexCoefficient = gender === "male" ? "+5" : "−161";
+  const sexCoefficientLabel =
+    gender === "male" ? "men" : "women";
 
   // Prepare share data for calorie results
   const shareResult = useMemo(() => {
@@ -186,6 +143,9 @@ export default function CalorieCalculator() {
           <p className="mt-3 text-gray-600 dark:text-gray-300">
             Calculate your daily calorie needs based on your goals and activity
             level
+          </p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Example values shown — enter your own data for personalized results
           </p>
         </motion.div>
 
@@ -300,6 +260,21 @@ export default function CalorieCalculator() {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Equation explanation */}
+            <div className="mt-6">
+              <div className="rounded-lg bg-blue-50 p-4 text-sm text-blue-900 ring-1 ring-inset ring-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:ring-blue-900/40">
+                <p className="font-medium mb-1">Mifflin–St Jeor Equation</p>
+                <p className="text-sm">
+                  BMR = 10 × weight + 6.25 × height − 5 × age + sex coefficient.
+                  The sex coefficient is{" "}
+                  <span className="font-semibold">{sexCoefficient}</span>{" "}
+                  for {sexCoefficientLabel}. This is a biological variable in
+                  the published equation, not a statement about gender identity.
+                  Results are population-level estimates.
+                </p>
+              </div>
             </div>
 
             {/* Activity & Goals */}
@@ -481,7 +456,7 @@ export default function CalorieCalculator() {
           className="mt-8 rounded-xl bg-white p-6 shadow-lg ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700"
         >
           <h3 className="mb-6 text-center text-lg font-semibold">
-            Recommended Macronutrient Breakdown
+            Illustrative Macronutrient Distribution
           </h3>
           <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {[
@@ -625,9 +600,35 @@ export default function CalorieCalculator() {
             </div>
           </div>
         )}
-      </div>
 
-      {/* Hidden Shareable Card for Image Generation */}
+        </div>
+
+        {/* Calculator Next Step */}
+        <CalculatorNextStep
+          heading="What's Next"
+          description={
+            <>
+              Estimated energy expenditure is only one aspect of fitness
+              planning. Explore your broader fitness picture or coaching
+              options.
+            </>
+          }
+          source="calculator-calories"
+          calculatorId="calories"
+          showEnquiry={true}
+          primaryCta={{
+            label: "Explore Your Fitness & Health Snapshot",
+            href: "/transformation",
+          }}
+          secondaryLinks={[
+            {
+              label: "Explore Strength Coaching",
+              href: "/services/category/strength-fitness-performance",
+            },
+          ]}
+        />
+
+        {/* Hidden Shareable Card for Image Generation */}
       {shareResult && (
         <div className="fixed -top-[9999px] -left-[9999px] pointer-events-none">
           <ResultCard

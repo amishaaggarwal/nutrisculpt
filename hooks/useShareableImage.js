@@ -80,25 +80,25 @@ export const useShareableImage = (calculatorType) => {
     if (!shareText) {
       switch (calculatorType) {
         case 'bmi':
-          shareText = `My BMI is ${result.value} (${result.category}). Calculate yours with NutriSculpt!`;
+          shareText = `My BMI is ${result.value} (${result.category}). Explore yours with NutriSculpt!`;
           break;
         case 'calories':
-          shareText = `My daily calorie target is ${result.value} calories. Find your perfect calorie goal!`;
+          shareText = `My estimated daily calorie target is ${result.value} calories. Explore your estimated daily calorie needs with NutriSculpt!`;
           break;
         case 'macros':
-          shareText = `Check out my macro breakdown: ${result.protein}g protein, ${result.carbs}g carbs, ${result.fat}g fat!`;
+          shareText = `My macro split: ${result.protein}g protein, ${result.carbs}g carbs, ${result.fat}g fat. Explore your own with NutriSculpt!`;
           break;
         case 'one-rm':
-          shareText = `My estimated 1RM is ${result.value}${result.unit}! Calculate your one-rep max!`;
+          shareText = `My estimated 1RM is ${result.value} ${result.unit} (Brzycki estimate from ${result.repsUsed} reps). Explore your strength estimate with NutriSculpt!`;
           break;
         case 'heart-rate':
-          shareText = `Discovered my optimal heart rate zones! Find yours for better training!`;
+          shareText = `Explore an estimated maximum heart rate and training guidance with NutriSculpt!`;
           break;
         case 'ideal-weight':
-          shareText = `Found my ideal weight range: ${result.value}${result.unit}. What's yours?`;
+          shareText = `Explore a weight-for-height reference: ${result.value}${result.unit}. Learn more with NutriSculpt!`;
           break;
         case 'water-intake':
-          shareText = `I should drink ${result.value}${result.unit} of water daily. Calculate your hydration needs!`;
+          shareText = `General hydration reference: ${result.value} L/day total water (all beverages and food). Explore hydration guidance with NutriSculpt!`;
           break;
         default:
           shareText = `Check out my fitness calculation results! Calculate yours with NutriSculpt!`;
@@ -113,24 +113,32 @@ export const useShareableImage = (calculatorType) => {
   }, [calculatorType]);
 
   const validateResultForPrivacy = useCallback((result, sensitiveFields = []) => {
-    // Create a sanitized version of the result that excludes sensitive information
+    // Shallow guard only: removes the named and common sensitive keys from the
+    // top level of the object. This is NOT a full sanitizer - it does not
+    // recurse into nested values and it cannot remove a value that a caller has
+    // already interpolated into a display string.
+    //
+    // Privacy on the shareable card is enforced by the callers passing an
+    // explicit allowlist of display-safe fields, and by rendering only those
+    // fields into the preview and the exported PNG. Treat this helper as a
+    // secondary check, not as proof that a result is safe to share.
     const sanitizedResult = { ...result };
-    
+
     // Remove any explicitly sensitive fields
     sensitiveFields.forEach(field => {
       delete sanitizedResult[field];
     });
-    
+
     // Common sensitive fields to exclude
     const commonSensitiveFields = [
-      'age', 'weight', 'height', 'gender', 'email', 'name', 
-      'restingHeartRate', 'maxHeartRate', 'activityLevel'
+      'age', 'weight', 'height', 'gender', 'email', 'name',
+      'restingHeartRate', 'maxHeartRate', 'activityLevel', 'restingHR'
     ];
-    
+
     commonSensitiveFields.forEach(field => {
       delete sanitizedResult[field];
     });
-    
+
     return sanitizedResult;
   }, []);
 

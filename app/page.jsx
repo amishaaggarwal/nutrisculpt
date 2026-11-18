@@ -16,8 +16,10 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const Home = () => {
+  const reduced = useReducedMotion();
   return (
     <main className="w-full">
       {/* A. Hero */}
@@ -43,10 +45,8 @@ const Home = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <motion.a
                 href="/transformation"
-                target="_blank"
-                rel="noopener noreferrer"
                 className="rounded-lg bg-blue-600 px-8 py-4 font-bold text-white shadow-lg transition hover:bg-blue-700"
-                whileHover={{ scale: 1.02 }}
+                whileHover={reduced ? {} : { scale: 1.02 }}
               >
                 Start Your Transformation
               </motion.a>
@@ -115,8 +115,8 @@ const Home = () => {
             ].map((item, index) => (
               <motion.div
                 key={item.label}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={reduced ? { opacity: 1 } : { opacity: 0, y: 10 }}
+                whileInView={reduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.08 }}
                 className="rounded-lg bg-white p-6 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-center"
               >
@@ -148,8 +148,12 @@ const Home = () => {
             {SERVICE_CATEGORIES.map((category, index) => (
               <motion.div
                 key={category.slug}
-                initial={{ scale: 0.95, opacity: 0 }}
-                whileInView={{ scale: 1, opacity: 1 }}
+                initial={
+                  reduced ? { opacity: 1 } : { scale: 0.95, opacity: 0 }
+                }
+                whileInView={reduced
+                  ? { opacity: 1 }
+                  : { scale: 1, opacity: 1 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
                 className={`flex h-full min-h-[22rem] flex-col rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800 lg:col-span-2 ${
                   index === 3 ? "lg:col-start-2" : ""
@@ -221,8 +225,8 @@ const Home = () => {
             ].map((item, index) => (
               <motion.div
                 key={item.title}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={reduced ? { opacity: 1 } : { opacity: 0, y: 10 }}
+                whileInView={reduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.08 }}
                 className="rounded-lg bg-white p-6 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-center"
               >
@@ -256,8 +260,8 @@ const Home = () => {
             {QUALIFICATIONS.map((q, index) => (
               <motion.div
                 key={q.name}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={reduced ? { opacity: 1 } : { opacity: 0, y: 10 }}
+                whileInView={reduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.08 }}
                 className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white p-6 dark:bg-gray-800 text-center"
               >
@@ -310,8 +314,8 @@ const Home = () => {
             ].map((item, index) => (
               <motion.div
                 key={item.title}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={reduced ? { opacity: 1 } : { opacity: 0, y: 10 }}
+                whileInView={reduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.08 }}
                 className="rounded-lg bg-white p-6 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-center"
               >
@@ -361,8 +365,8 @@ const Home = () => {
             ].map((testimonial, index) => (
               <motion.div
                 key={index}
-                initial={{ x: -50, opacity: 0 }}
-                whileInView={{ x: 0, opacity: 1 }}
+                initial={reduced ? { opacity: 1 } : { x: -50, opacity: 0 }}
+                whileInView={reduced ? { opacity: 1 } : { x: 0, opacity: 1 }}
                 transition={{ duration: 0.6, delay: index * 0.2 }}
                 className="rounded-lg bg-gray-100 p-6 shadow-lg dark:bg-gray-700"
               >

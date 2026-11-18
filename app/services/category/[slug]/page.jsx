@@ -27,8 +27,9 @@ const AREA_ICONS = {
   "fitness-education-independence": [faBookOpen, faChartLine, faCalendarCheck],
 };
 
-export default async function ServiceCategory({ params }) {
+export default async function ServiceCategory({ params, searchParams }) {
   const { slug } = await params;
+  const { source } = await searchParams;
   const category = SERVICE_CATEGORIES.find((c) => c.slug === slug);
 
   if (!category) {
@@ -36,7 +37,7 @@ export default async function ServiceCategory({ params }) {
       <main className="mx-auto max-w-4xl px-4 py-10">
         <div className="mb-6">
           <Link
-            href="/#services"
+            href="/services"
             className="inline-flex items-center gap-2 text-blue-600 hover:underline dark:text-blue-400"
           >
             <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
@@ -55,6 +56,12 @@ export default async function ServiceCategory({ params }) {
 
   const Icon = CATEGORY_ICONS[category.icon];
   const areaIcons = AREA_ICONS[category.slug] || [faDumbbell, faBullseye, faClipboardList];
+
+  // Resolve referral source: preserve calculator origin if present in URL
+  const urlSource = source || "";
+  const resolvedSource = /^calculator-(bmi|calories|macros|one-rm|ideal-weight|water-intake|heart-rate)$/.test(urlSource)
+    ? urlSource
+    : "service-category";
 
   const METABOLIC_UNIVERSAL = (
     <>
@@ -81,7 +88,7 @@ export default async function ServiceCategory({ params }) {
     <main className="mx-auto max-w-4xl px-4 py-10">
       <div className="mb-6">
         <Link
-          href="/#services"
+          href="/services"
           className="inline-flex items-center gap-2 text-blue-600 hover:underline dark:text-blue-400"
         >
           <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
@@ -144,7 +151,7 @@ export default async function ServiceCategory({ params }) {
         </p>
         <div className="mt-6">
           <Link
-            href={`/expert-connect?category=${encodeURIComponent(category.slug)}&source=service-category&back=${encodeURIComponent(`/services/category/${category.slug}`)}`}
+            href={`/expert-connect?category=${encodeURIComponent(category.slug)}&source=${encodeURIComponent(resolvedSource)}&back=${encodeURIComponent(`/services/category/${category.slug}`)}`}
             className="inline-block rounded-lg bg-blue-600 px-8 py-3 font-bold text-white shadow transition hover:bg-blue-700"
           >
             Connect to an Expert
@@ -154,7 +161,7 @@ export default async function ServiceCategory({ params }) {
 
       <div className="mt-8">
         <Link
-          href="/#services"
+          href="/services"
           className="inline-flex items-center gap-2 text-blue-600 hover:underline dark:text-blue-400"
         >
           <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />

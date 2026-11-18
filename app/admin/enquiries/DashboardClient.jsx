@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ENQUIRY_SERVICE_OPTIONS } from "@/constants/services";
+import { ENQUIRY_SERVICE_OPTIONS, GOAL_LABELS } from "@/constants/services";
 
 const STATUS_OPTIONS = [
   { value: "new", label: "New" },
@@ -302,9 +302,10 @@ export default function DashboardClient({ adminEmail }) {
               <button onClick={() => setSelected(null)} className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">Close</button>
             </div>
 
-            <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+<dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
               <div><dt className="font-medium text-gray-500 dark:text-gray-400">Full name</dt><dd className="text-gray-900 dark:text-white">{selected.fullName || "—"}</dd></div>
               <div><dt className="font-medium text-gray-500 dark:text-gray-400">Service category</dt><dd className="text-gray-900 dark:text-white">{CATEGORY_LABELS[selected.selectedServiceCategory] || selected.selectedServiceCategoryLabel || selected.selectedServiceCategory || "—"}</dd></div>
+              <div><dt className="font-medium text-gray-500 dark:text-gray-400">Goal category</dt><dd className="text-gray-900 dark:text-white">{selected.primaryGoalCategory ? GOAL_LABELS[selected.primaryGoalCategory] : "—"}</dd></div>
               <div><dt className="font-medium text-gray-500 dark:text-gray-400">Email</dt><dd className="text-gray-900 dark:text-white">{selected.email ? <a className="text-blue-600 hover:underline dark:text-blue-400" href={`mailto:${selected.email}`}>{selected.email}</a> : "—"}</dd></div>
               <div><dt className="font-medium text-gray-500 dark:text-gray-400">Phone</dt><dd className="text-gray-900 dark:text-white">{selected.phoneNumber ? <a className="text-blue-600 hover:underline dark:text-blue-400" href={`tel:${(selected.countryCode||"")}${selected.phoneNumber}`.replace(/[^+\d]/g, "")}>{`${selected.countryCode || ""} ${selected.phoneNumber}`.trim()}</a> : "—"}</dd></div>
               <div><dt className="font-medium text-gray-500 dark:text-gray-400">Coaching preference</dt><dd className="text-gray-900 dark:text-white">{selected.coachingPreference || "—"}</dd></div>

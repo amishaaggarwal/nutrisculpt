@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ENQUIRY_CATEGORY_ALLOWLIST, ENQUIRY_SERVICE_OPTIONS } from "@/constants/services";
+import { ENQUIRY_CATEGORY_ALLOWLIST, ENQUIRY_SERVICE_OPTIONS, GOAL_ALLOWLIST } from "@/constants/services";
 import { createEnquiry } from "@/lib/enquiries";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -27,6 +27,13 @@ const SOURCE_ALLOWLIST = new Set([
   "transformation",
   "direct",
   "other",
+  "calculator-bmi",
+  "calculator-calories",
+  "calculator-macros",
+  "calculator-one-rm",
+  "calculator-ideal-weight",
+  "calculator-water-intake",
+  "calculator-heart-rate",
 ]);
 
 const recentSubmissions = new Map();
@@ -51,7 +58,10 @@ export async function POST(request) {
     }
 
     if (clean(body.website, 100)) {
-      return NextResponse.json({ success: true });
+      return NextResponse.json(
+        { error: "We couldn't submit your enquiry. Please try again." },
+        { status: 400 }
+      );
     }
 
     const ip = getClientIp(request);
@@ -74,6 +84,7 @@ export async function POST(request) {
     const ageGroup = clean(body.ageGroup, 40);
     const city = clean(body.city, 120);
     const requestedSource = clean(body.source || body.entrySource, 40);
+    const rawGoalCategory = clean(body.primaryGoalCategory, 40);
 
     if (!fullName) {
       return NextResponse.json({ error: "Full name is required." }, { status: 400 });
@@ -120,6 +131,7 @@ export async function POST(request) {
     const safeCity =
       safeCoachingPreference === "In-person 1:1 coaching" ? city : "";
     const safeSource = SOURCE_ALLOWLIST.has(requestedSource) ? requestedSource : "direct";
+    const validGoalCategory = GOAL_ALLOWLIST.has(rawGoalCategory) ? rawGoalCategory : "";
 
     const submittedAt = new Date().toISOString();
     const payload = {
@@ -130,6 +142,7 @@ export async function POST(request) {
       selectedServiceCategory: validCategory,
       selectedServiceCategoryLabel,
       primaryGoal,
+      primaryGoalCategory: validGoalCategory,
       coachingPreference: safeCoachingPreference,
       ageGroup: safeAgeGroup,
       city: safeCity,

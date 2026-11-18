@@ -3,9 +3,12 @@
 import React, { useMemo, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { isSafeBackHref, BACK_ROUTE_ALLOWLIST } from "@/lib/back-link-security";
 import {
   ENQUIRY_CATEGORY_ALLOWLIST,
   ENQUIRY_SERVICE_OPTIONS,
+  GOAL_ALLOWLIST,
+  GOAL_LABELS,
 } from "@/constants/services";
 
 const AGE_GROUPS = [
@@ -52,17 +55,27 @@ const SOURCE_ALLOWLIST = new Set([
   "transformation",
   "direct",
   "other",
+  "calculator-bmi",
+  "calculator-calories",
+  "calculator-macros",
+  "calculator-one-rm",
+  "calculator-ideal-weight",
+  "calculator-water-intake",
+  "calculator-heart-rate",
 ]);
 
 function ExpertConnectForm() {
   const searchParams = useSearchParams();
-  const backHref = searchParams.get("back") || "/#services";
+  const rawBackHref = searchParams.get("back");
+  const backHref = isSafeBackHref(rawBackHref) ? rawBackHref : "/#services";
   const rawCategory = searchParams.get("category") || "";
   const rawSource = searchParams.get("source") || "";
+  const rawGoal = searchParams.get("goal") || "";
 
   const initialCategory = ENQUIRY_CATEGORY_ALLOWLIST.has(rawCategory)
     ? rawCategory
     : "not-sure";
+  const initialGoal = GOAL_ALLOWLIST.has(rawGoal) ? rawGoal : "";
   const source = SOURCE_ALLOWLIST.has(rawSource)
     ? rawSource
     : initialCategory !== "not-sure"
@@ -76,6 +89,7 @@ function ExpertConnectForm() {
     phoneNumber: "",
     selectedServiceCategory: initialCategory,
     primaryGoal: "",
+    primaryGoalCategory: initialGoal,
     coachingPreference: "",
     ageGroup: "",
     city: "",
@@ -155,6 +169,7 @@ function ExpertConnectForm() {
         phoneNumber: form.phoneNumber.trim(),
         selectedServiceCategory: form.selectedServiceCategory,
         primaryGoal: form.primaryGoal.trim(),
+        primaryGoalCategory: form.primaryGoalCategory,
         coachingPreference: form.coachingPreference,
         ageGroup: form.ageGroup,
         city: showCity ? form.city.trim() : "",
@@ -252,7 +267,7 @@ function ExpertConnectForm() {
           <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
             <div className="hidden" aria-hidden="true">
               <label htmlFor="website">Website</label>
-              <input id="website" name="website" value={form.website} onChange={handleChange} tabIndex={-1} autoComplete="off" />
+              <input id="website" name="website" value={form.website} onChange={handleChange} tabIndex={-1} autoComplete="new-password" />
             </div>
 
             <div>
@@ -292,6 +307,15 @@ function ExpertConnectForm() {
               </select>
               {fieldErrors.selectedServiceCategory && <p className={errorClass}>{fieldErrors.selectedServiceCategory}</p>}
             </div>
+
+            {/* Goal context from transformation page */}
+            {form.primaryGoalCategory && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm dark:border-blue-800 dark:bg-blue-900/20">
+                <p className="font-medium text-blue-900 dark:text-blue-200">Your selected goal:</p>
+                <p className="text-blue-800 dark:text-blue-300">{GOAL_LABELS[form.primaryGoalCategory]}</p>
+                <p className="mt-1 text-xs text-blue-700 dark:text-blue-400">This context helps us understand your needs. You can still describe your specific goal in detail below.</p>
+              </div>
+            )}
 
             <div>
               <label htmlFor="primaryGoal" className={labelClass}>What would you like to achieve? <span className="text-red-600">*</span></label>

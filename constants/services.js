@@ -226,3 +226,24 @@ export const ENQUIRY_SERVICE_OPTIONS = [
 export const ENQUIRY_CATEGORY_ALLOWLIST = new Set(
   ENQUIRY_SERVICE_OPTIONS.map((option) => option.value)
 );
+
+// Goal-to-service mapping for transformation page
+export const GOAL_TO_SERVICE_MAP = {
+  strength: "strength-fitness-performance",
+  health: "metabolic-bone-health",
+  function: "pain-posture-movement",
+  athletic: "functional-fitness-life-stages",
+  independent: "fitness-education-independence",
+  unsure: "not-sure",
+};
+
+export const GOAL_ALLOWLIST = new Set(Object.keys(GOAL_TO_SERVICE_MAP));
+
+export const GOAL_LABELS = {
+  strength: "Build strength and general fitness",
+  health: "Improve health-focused fitness",
+  function: "Move better and improve daily function",
+  athletic: "Improve athletic conditioning",
+  independent: "Learn to train independently",
+  unsure: "Not sure yet",
+};
