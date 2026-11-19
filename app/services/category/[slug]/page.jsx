@@ -17,6 +17,7 @@ import {
   faCalendarCheck,
 } from "@fortawesome/free-solid-svg-icons";
 import { SERVICE_CATEGORIES, CATEGORY_ICONS } from "@/constants/services";
+import { isSafeBackHref } from "@/lib/back-link-security";
 import HealthDisclaimer from "@/components/atoms/HealthDisclaimer";
 
 const AREA_ICONS = {
@@ -29,7 +30,7 @@ const AREA_ICONS = {
 
 export default async function ServiceCategory({ params, searchParams }) {
   const { slug } = await params;
-  const { source } = await searchParams;
+  const { source, back, serviceReturnTo } = await searchParams;
   const category = SERVICE_CATEGORIES.find((c) => c.slug === slug);
 
   if (!category) {
@@ -37,7 +38,7 @@ export default async function ServiceCategory({ params, searchParams }) {
       <main className="mx-auto max-w-4xl px-4 py-10">
         <div className="mb-6">
           <Link
-            href="/services"
+            href="/#services"
             className="inline-flex items-center gap-2 text-blue-600 hover:underline dark:text-blue-400"
           >
             <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
@@ -62,6 +63,40 @@ export default async function ServiceCategory({ params, searchParams }) {
   const resolvedSource = /^calculator-(bmi|calories|macros|one-rm|ideal-weight|water-intake|heart-rate)$/.test(urlSource)
     ? urlSource
     : "service-category";
+
+  // Resolve context-aware return destination for the single top Back link.
+  // Only validated internal routes are accepted; anything else falls back to
+  // the homepage Our Services section (/#services).
+  // serviceReturnTo preserves the original destination across an
+  // expert-enquiry round-trip (Category -> Expert -> Back -> Category).
+  const CALCULATOR_ROUTES = new Set([
+    "/bmi",
+    "/calories",
+    "/macros",
+    "/one-rm",
+    "/ideal-weight",
+    "/water-intake",
+    "/heart-rate",
+  ]);
+
+  const rawBack = back || "";
+  const backHref = isSafeBackHref(rawBack) ? rawBack : "";
+
+  const rawServiceReturnTo = serviceReturnTo || "";
+  const serviceReturnHref = isSafeBackHref(rawServiceReturnTo)
+    ? rawServiceReturnTo
+    : "";
+
+  // Original return context survives the enquiry page; otherwise use the
+  // direct back param; otherwise fall back to the homepage Services section.
+  const finalBackHref = serviceReturnHref || backHref || "/#services";
+
+  let backLabel = "Back to Our Services";
+  if (finalBackHref === "/transformation") {
+    backLabel = "Back to Fitness Snapshot";
+  } else if (CALCULATOR_ROUTES.has(finalBackHref)) {
+    backLabel = "Back to Calculator";
+  }
 
   const METABOLIC_UNIVERSAL = (
     <>
@@ -88,11 +123,11 @@ export default async function ServiceCategory({ params, searchParams }) {
     <main className="mx-auto max-w-4xl px-4 py-10">
       <div className="mb-6">
         <Link
-          href="/services"
+          href={finalBackHref}
           className="inline-flex items-center gap-2 text-blue-600 hover:underline dark:text-blue-400"
         >
           <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
-          Back to Services
+          {backLabel}
         </Link>
       </div>
 
@@ -151,23 +186,13 @@ export default async function ServiceCategory({ params, searchParams }) {
         </p>
         <div className="mt-6">
           <Link
-            href={`/expert-connect?category=${encodeURIComponent(category.slug)}&source=${encodeURIComponent(resolvedSource)}&back=${encodeURIComponent(`/services/category/${category.slug}`)}`}
+            href={`/expert-connect?category=${encodeURIComponent(category.slug)}&source=${encodeURIComponent(resolvedSource)}&back=${encodeURIComponent(`/services/category/${category.slug}`)}&serviceReturnTo=${encodeURIComponent(finalBackHref)}`}
             className="inline-block rounded-lg bg-blue-600 px-8 py-3 font-bold text-white shadow transition hover:bg-blue-700"
           >
             Connect to an Expert
           </Link>
         </div>
       </section>
-
-      <div className="mt-8">
-        <Link
-          href="/services"
-          className="inline-flex items-center gap-2 text-blue-600 hover:underline dark:text-blue-400"
-        >
-          <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
-          Back to All Services
-        </Link>
-      </div>
     </main>
   );
 }

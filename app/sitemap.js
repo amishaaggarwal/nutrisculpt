@@ -7,12 +7,6 @@ export default function sitemap() {
       priority: 1,
     },
     {
-      url: 'https://nutrisculpt.vercel.app/services',
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.85,
-    },
-    {
       url: 'https://nutrisculpt.vercel.app/calories',
       lastModified: new Date(),
       changeFrequency: 'monthly',

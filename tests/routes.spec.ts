@@ -96,24 +96,16 @@ test.describe("NutriSculpt route load + responsive + form validation", () => {
     }
   });
 
-  test("/services loads and lists all five categories", async ({ page }) => {
+  test("/services redirects to the homepage Services section", async ({
+    page,
+  }) => {
     const res = await page.goto("/services", { waitUntil: "load" });
     expect(res?.status()).toBe(200);
-    await expect(page.getByRole("heading", { name: "Our Coaching Services" })).toBeVisible();
-    const titles = [
-      "Personal Training & Strength Development",
-      "Exercise for Special Populations & Health-Focused Fitness",
-      "Movement, Posture & Functional Fitness",
-      "Athletic Performance & Conditioning",
-      "Fitness Education & Independent Training",
-    ];
-    for (const title of titles) {
-      await expect(page.getByRole("heading", { name: title })).toBeVisible();
-    }
-    const categoryLinks = page.getByRole("link", {
-      name: /Explore .* →/,
-    });
-    await expect(categoryLinks).toHaveCount(5);
+    await expect(page).toHaveURL(/.*#services/);
+    await page.waitForLoadState("networkidle");
+    const services = page.locator("#services");
+    await expect(services).toBeVisible();
+    // The five category detail pages remain reachable from the homepage section.
     for (const slug of [
       "strength-fitness-performance",
       "metabolic-bone-health",
@@ -122,7 +114,7 @@ test.describe("NutriSculpt route load + responsive + form validation", () => {
       "fitness-education-independence",
     ]) {
       await expect(
-        page.locator(`a[href="/services/category/${slug}"]`),
+        page.locator(`a[href*="/services/category/${slug}"]`),
       ).toBeVisible();
     }
   });

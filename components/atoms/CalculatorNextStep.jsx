@@ -30,7 +30,7 @@ export default function CalculatorNextStep({
       </p>
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
         <Link
-          href={primaryCta.href + sourceQuery}
+          href={primaryCta.href + sourceQuery + backQuery}
           className="inline-flex items-center justify-center w-full sm:w-auto rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
         >
           {primaryCta.label}
@@ -38,9 +38,9 @@ export default function CalculatorNextStep({
         {secondaryLinks?.length > 0 && (
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             {secondaryLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href + sourceQuery}
+                <Link
+                  key={link.href}
+                  href={link.href + sourceQuery + backQuery}
                 className="inline-flex items-center justify-center w-full sm:w-auto rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700 dark:focus-visible:ring-offset-gray-800"
               >
                 {link.label}

@@ -172,7 +172,7 @@ const Home = () => {
                   {category.shortDescription}
                 </p>
                 <Link
-                  href={`/services/category/${category.slug}`}
+                  href={`/services/category/${category.slug}?back=${encodeURIComponent("/#services")}`}
                   className="mt-auto block w-full rounded-lg bg-blue-600 px-4 py-2.5 text-center font-semibold text-white shadow transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
                 >
                   Explore Services →

@@ -77,7 +77,7 @@ const Header = ({ darkMode, toggleDarkMode }) => {
             <ul className="hidden space-x-4 md:flex">
               <li>
                 <Link
-                  href="/services"
+                  href="/#services"
                   className="hover:text-blue-600 dark:hover:text-blue-400"
                 >
                   Services
@@ -193,7 +193,7 @@ const Header = ({ darkMode, toggleDarkMode }) => {
             <ul className="flex flex-col space-y-3">
               <li>
                 <Link
-                  href="/services"
+                  href="/#services"
                   onClick={closeMobile}
                   className="block rounded px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
                 >

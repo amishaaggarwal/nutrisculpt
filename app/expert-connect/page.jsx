@@ -71,6 +71,10 @@ function ExpertConnectForm() {
   const rawCategory = searchParams.get("category") || "";
   const rawSource = searchParams.get("source") || "";
   const rawGoal = searchParams.get("goal") || "";
+  const rawServiceReturnTo = searchParams.get("serviceReturnTo") || "";
+  const serviceReturnTo = isSafeBackHref(rawServiceReturnTo)
+    ? rawServiceReturnTo
+    : "";
 
   const initialCategory = ENQUIRY_CATEGORY_ALLOWLIST.has(rawCategory)
     ? rawCategory
@@ -251,7 +255,10 @@ function ExpertConnectForm() {
     <main className="min-h-screen bg-gray-50 px-4 py-10 dark:bg-gray-900">
       <div className="mx-auto max-w-2xl">
         <div className="mb-6">
-          <Link href={backHref} className="text-blue-600 hover:underline dark:text-blue-400">
+          <Link
+            href={`${backHref}?serviceReturnTo=${encodeURIComponent(serviceReturnTo)}&source=${encodeURIComponent(source)}`}
+            className="text-blue-600 hover:underline dark:text-blue-400"
+          >
             ← Back
           </Link>
         </div>
