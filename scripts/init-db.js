@@ -29,11 +29,15 @@ async function main() {
   }
   const sql = neon(connectionString);
   const migrationPath = path.join(process.cwd(), "migrations", "001_create_enquiries.sql");
-  const ddl = fs.readFileSync(migrationPath, "utf8");
-  const statements = ddl
-    .split(/;\s*\n/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const migration2Path = path.join(process.cwd(), "migrations", "002_add_deleted_at.sql");
+  const migration3Path = path.join(process.cwd(), "migrations", "003_add_idempotency.sql");
+  const statements = [];
+  for (const mp of [migrationPath, migration2Path, migration3Path]) {
+    const ddl = fs.readFileSync(mp, "utf8");
+    for (const s of ddl.split(/;\s*\n/).map((s) => s.trim()).filter(Boolean)) {
+      statements.push(s);
+    }
+  }
   for (const stmt of statements) {
     await sql`${sql.unsafe(stmt)}`;
   }

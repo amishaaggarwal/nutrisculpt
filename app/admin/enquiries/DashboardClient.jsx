@@ -64,6 +64,12 @@ export default function DashboardClient({ adminEmail }) {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
   const [saveErr, setSaveErr] = useState("");
+  const [viewTrash, setViewTrash] = useState(false);
+  const [trashData, setTrashData] = useState({ items: [], total: 0, page: 1, pageSize: 20, totalPages: 1, counts: { total: 0 }, byCategory: {} });
+  const [trashLoading, setTrashLoading] = useState(false);
+  const [trashError, setTrashError] = useState("");
+  const [pendingTrash, setPendingTrash] = useState(null); // { action: 'trash'|'restore'|'delete', id: string }
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -88,6 +94,26 @@ export default function DashboardClient({ adminEmail }) {
       setLoading(false);
     }
   }, [search, statusFilter, categoryFilter, dateFrom, dateTo, page, router]);
+
+  const fetchTrashData = useCallback(async () => {
+    setTrashLoading(true);
+    setTrashError("");
+    try {
+      const params = new URLSearchParams();
+      params.set("trashed", "1");
+      params.set("page", "1");
+      params.set("pageSize", "50");
+      const res = await fetch(`/api/admin/enquiries?${params.toString()}`, { cache: "no-store" });
+      const json = await res.json().catch(() => ({}));
+      if (res.status === 401) { router.replace("/admin/login"); return; }
+      if (!res.ok) { setTrashError(json.error || "Failed to load Trash."); return; }
+      setTrashData(json);
+    } catch {
+      setTrashError("Failed to load Trash.");
+    } finally {
+      setTrashLoading(false);
+    }
+  }, [router]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -134,6 +160,43 @@ export default function DashboardClient({ adminEmail }) {
     }
   };
 
+  const openTrashAction = (action, id) => {
+    setPendingTrash({ action, id });
+    setDeleteConfirmText("");
+  };
+  const closeTrashAction = () => {
+    setPendingTrash(null);
+    setDeleteConfirmText("");
+  };
+
+  const executeTrashAction = async () => {
+    if (!pendingTrash) return;
+    const { action, id } = pendingTrash;
+    if (action === "delete" && deleteConfirmText !== "DELETE") {
+      setSaveErr('Please type DELETE to confirm permanent deletion.');
+      return;
+    }
+    setSaving(true); setSaveErr(""); setSaveMsg("");
+    try {
+      const res = await fetch("/api/admin/enquiries", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, id }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.status === 401) { router.replace("/admin/login"); return; }
+      if (!res.ok) { setSaveErr(json.error || "Unable to complete action."); return; }
+      setSaveMsg(json.action === "trashed" ? "Moved to Trash." : json.action === "restored" ? "Restored." : "Permanently deleted.");
+      closeTrashAction();
+      fetchData();
+      if (viewTrash) fetchTrashData();
+    } catch {
+      setSaveErr("Unable to complete action.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const categoryCounts = useMemo(() => {
     const bc = data.byCategory || {};
     return FIVE_CATEGORIES.map((c) => ({ ...c, count: bc[c.value] || 0 }));
@@ -150,8 +213,16 @@ export default function DashboardClient({ adminEmail }) {
           <button onClick={onLogout} className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
             Sign out
           </button>
+          <button
+            onClick={() => { setViewTrash(!viewTrash); if (!viewTrash) fetchTrashData(); }}
+            className={`inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${viewTrash ? "border-blue-600 bg-blue-600 text-white hover:bg-blue-700 dark:border-blue-400" : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"}`}
+          >
+            {viewTrash ? "Back to Active" : "Trash"}
+          </button>
         </div>
 
+        {(!viewTrash) && (
+          <div>
         <p className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Summary (all-time totals)</p>
         <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
           {[
@@ -201,11 +272,19 @@ export default function DashboardClient({ adminEmail }) {
           </form>
         </div>
 
-        {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300" role="alert">{error}</div>}
-
         <div className="mb-8 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
           {loading ? (
             <div className="p-8 text-center text-gray-600 dark:text-gray-400">Loading enquiries...</div>
+          ) : error ? (
+            <div className="p-8 text-center text-red-700 dark:text-red-300">
+              <p className="text-lg font-medium text-red-700 dark:text-red-300">Failed to load enquiries.</p>
+              <button
+                onClick={fetchData}
+                className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-800/20"
+              >
+                Retry
+              </button>
+            </div>
           ) : data.items.length === 0 ? (
             <div className="p-8 text-center">
               <p className="text-lg font-medium text-gray-900 dark:text-white">No enquiries found</p>
@@ -288,6 +367,79 @@ export default function DashboardClient({ adminEmail }) {
             })}
           </div>
         </div>
+          </div>
+        )}
+
+        {viewTrash && (
+          <div className="mb-8 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            {trashLoading ? (
+              <div className="p-8 text-center text-gray-600 dark:text-gray-400">Loading Trash...</div>
+            ) : trashError ? (
+              <div className="p-8 text-center text-red-700 dark:text-red-300">
+                <p className="text-lg font-medium text-red-700 dark:text-red-300">Failed to load Trash.</p>
+                <button
+                  onClick={fetchTrashData}
+                  className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-800/20"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : trashData.items.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-lg font-medium text-gray-900 dark:text-white">Trash is empty.</p>
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Closed enquiries moved to Trash will appear here.</p>
+              </div>
+            ) : (
+              <>
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Trash</h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{trashData.total} trashed enquiry{trashData.total !== 1 ? "ies" : ""}</p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-900/40">
+                      <tr>
+                        {["Client", "Contact", "Service", "Status", "Submitted", "Trashed", ""].map((h) => (
+                          <th key={h} scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                      {trashData.items.map((e) => (
+                        <tr key={e.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/30">
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{e.fullName || "—"}</td>
+                          <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{e.email || (e.phoneNumber ? `${e.countryCode || ""} ${e.phoneNumber}`.trim() : "—")}</td>
+                          <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{CATEGORY_LABELS[e.selectedServiceCategory] || e.selectedServiceCategoryLabel || e.selectedServiceCategory || "—"}</td>
+                          <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{STATUS_OPTIONS.find((s) => s.value === e.status)?.label || "New"}</td>
+                          <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">{fmtDateShort(e.submittedAt)}</td>
+                          <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">{e.deletedAt ? fmtDateShort(e.deletedAt) : "—"}</td>
+                          <td className="px-4 py-3 text-sm">
+                            <button
+                              onClick={() => openTrashAction("restore", e.id)}
+                              className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+                            >
+                              Restore
+                            </button>
+                            <button
+                              onClick={() => openTrashAction("delete", e.id)}
+                              className="ml-2 text-xs font-medium text-red-600 hover:underline dark:text-red-400"
+                            >
+                              Delete Permanently
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="flex flex-col items-center justify-between gap-3 border-t border-gray-200 px-4 py-3 dark:border-gray-700 sm:flex-row">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Showing {trashData.items.length} of {trashData.total} trashed enquiries</p>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
       </div>
 
       {selected && (
@@ -342,6 +494,15 @@ export default function DashboardClient({ adminEmail }) {
                 {saveMsg && <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300">{saveMsg}</div>}
                 <div className="flex gap-3">
                   <button onClick={saveDetails} disabled={saving} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">{saving ? "Saving..." : "Save changes"}</button>
+                  {selected && selected.status === "closed" && !selected.deletedAt && (
+                    <button
+                      onClick={() => openTrashAction("trash", selected.id)}
+                      disabled={saving}
+                      className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-800/20"
+                    >
+                      Move to Trash
+                    </button>
+                  )}
                   <button onClick={() => setSelected(null)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">Back to list</button>
                 </div>
               </div>
@@ -349,6 +510,56 @@ export default function DashboardClient({ adminEmail }) {
           </div>
         </div>
       )}
+
+      {pendingTrash && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <button className="absolute inset-0 bg-black/40" aria-label="Close" onClick={closeTrashAction} />
+        <div className="relative w-full max-w-md bg-white p-6 shadow-xl dark:bg-gray-800 sm:p-8 rounded-xl border border-gray-200 dark:border-gray-700" role="dialog" aria-modal="true">
+          {pendingTrash.action === "delete" ? (
+            <>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Delete Permanently</h2>
+              <p className="text-sm text-red-700 dark:text-red-400 mb-4">This permanently deletes the enquiry and cannot be undone.</p>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type DELETE to confirm</label>
+                <input
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="DELETE"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-gray-600 dark:bg-gray-900 dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-900 uppercase tracking-widest"
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                {pendingTrash.action === "trash" ? "Move to Trash" : "Restore from Trash"}
+              </h2>
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
+                {pendingTrash.action === "trash"
+                  ? "Move this closed enquiry to Trash? You can restore it later."
+                  : "Restore this enquiry to the active list? It will keep its Closed status."}
+              </p>
+            </>
+          )}
+          <div className="flex gap-3">
+            <button onClick={closeTrashAction} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
+              Cancel
+            </button>
+            <button
+              onClick={executeTrashAction}
+              disabled={saving || (pendingTrash.action === "delete" && deleteConfirmText !== "DELETE")}
+              className={`rounded-lg px-4 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-60 ${
+                pendingTrash.action === "delete"
+                  ? "bg-red-600 text-white hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600"
+                  : "bg-blue-600 text-white hover:bg-blue-700"
+              }`}
+            >
+              {saving ? "Working..." : pendingTrash.action === "delete" ? "Delete Permanently" : pendingTrash.action === "trash" ? "Move to Trash" : "Restore"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </div>
   );
 }

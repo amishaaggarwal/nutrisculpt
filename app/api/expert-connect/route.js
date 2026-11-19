@@ -36,8 +36,12 @@ const SOURCE_ALLOWLIST = new Set([
   "calculator-heart-rate",
 ]);
 
-const recentSubmissions = new Map();
-const WINDOW_MS = 60_000;
+// IP-based rate limit: max 5 submissions per 5 minutes per IP.
+// In-memory store is a reasonable first line of defense; database-backed
+// idempotency and fingerprinting provide the durable duplicate protection.
+const IP_WINDOW_MS = 5 * 60 * 1000;
+const IP_MAX_SUBMISSIONS = 5;
+const ipSubmissions = new Map();
 
 function clean(value, max = 200) {
   if (typeof value !== "string") return "";
@@ -50,6 +54,29 @@ function getClientIp(request) {
   return request.headers.get("x-real-ip") || "unknown";
 }
 
+function checkIpRateLimit(ip, now) {
+  const windowStart = now - IP_WINDOW_MS;
+  let entries = ipSubmissions.get(ip);
+  if (!entries) {
+    entries = [];
+  } else {
+    entries = entries.filter((t) => t > windowStart);
+  }
+  if (entries.length >= IP_MAX_SUBMISSIONS) {
+    const oldest = Math.min(...entries);
+    const retryAfterMs = oldest + IP_WINDOW_MS - now;
+    return { allowed: false, retryAfterSeconds: Math.ceil(Math.max(retryAfterMs, 0) / 1000) };
+  }
+  entries.push(now);
+  ipSubmissions.set(ip, entries);
+  return { allowed: true };
+}
+
+function getFingerprintSecret() {
+  // Prefer a dedicated secret; fall back to the admin session secret.
+  return process.env.ENQUIRY_FINGERPRINT_SECRET || process.env.ADMIN_SESSION_SECRET || "";
+}
+
 export async function POST(request) {
   try {
     const body = await request.json().catch(() => null);
@@ -57,6 +84,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "Invalid submission." }, { status: 400 });
     }
 
+    // Honeypot: any value in the hidden website field indicates a bot.
     if (clean(body.website, 100)) {
       return NextResponse.json(
         { error: "We couldn't submit your enquiry. Please try again." },
@@ -64,13 +92,17 @@ export async function POST(request) {
       );
     }
 
+    // --- IP-based rate limit (first line of defense) ---
     const ip = getClientIp(request);
     const now = Date.now();
-    const last = recentSubmissions.get(ip) || 0;
-    if (now - last < WINDOW_MS) {
+    const ipCheck = checkIpRateLimit(ip, now);
+    if (!ipCheck.allowed) {
       return NextResponse.json(
         { error: "Please wait a moment before submitting again." },
-        { status: 429 }
+        {
+          status: 429,
+          headers: { "Retry-After": String(ipCheck.retryAfterSeconds) },
+        },
       );
     }
 
@@ -85,6 +117,7 @@ export async function POST(request) {
     const city = clean(body.city, 120);
     const requestedSource = clean(body.source || body.entrySource, 40);
     const rawGoalCategory = clean(body.primaryGoalCategory, 40);
+    const idempotencyKey = clean(body.idempotencyKey, 128);
 
     if (!fullName) {
       return NextResponse.json({ error: "Full name is required." }, { status: 400 });
@@ -113,7 +146,7 @@ export async function POST(request) {
     const validCategory = ENQUIRY_CATEGORY_ALLOWLIST.has(selectedCategory)
       ? selectedCategory
       : "not-sure";
-    const selectedCategoryLabel =
+    const selectedServiceCategoryLabel =
       ENQUIRY_SERVICE_OPTIONS.find((o) => o.value === validCategory)?.label ||
       "Not Sure Yet — Help Me Choose";
 
@@ -151,7 +184,38 @@ export async function POST(request) {
       status: "new",
     };
 
-    await createEnquiry(payload);
+    const fingerprintSecret = getFingerprintSecret();
+
+    let created;
+    try {
+      created = await createEnquiry(payload, {
+        idempotencyKey: idempotencyKey || undefined,
+        fingerprintSecret: fingerprintSecret || undefined,
+      });
+    } catch (err) {
+      // Idempotency conflict: same key, different payload → 409.
+      if (err.code === "IDEMPOTENCY_CONFLICT") {
+        return NextResponse.json(
+          { error: "This enquiry was already submitted with different details." },
+          { status: 409 },
+        );
+      }
+      // Rapid duplicate: identical enquiry within the window → 429.
+      if (err.code === "DUPLICATE_ENQUIRY") {
+        return NextResponse.json(
+          { error: "A similar enquiry was recently submitted. Please wait before sending again." },
+          {
+            status: 429,
+            headers: { "Retry-After": "600" },
+          },
+        );
+      }
+      // Database or other unexpected error → 500, no internal details leaked.
+      return NextResponse.json(
+        { error: "We couldn't save your enquiry. Please try again." },
+        { status: 500 },
+      );
+    }
 
     const GOOGLE_SCRIPT_URL = process.env.GOOGLE_APPS_SCRIPT_URL || "";
     let data = "";
@@ -173,8 +237,7 @@ export async function POST(request) {
       }
     }
 
-    recentSubmissions.set(ip, now);
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({ success: true, data, id: created.id });
   } catch {
     return NextResponse.json(
       { error: "We couldn't save your enquiry. Please try again." },

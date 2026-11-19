@@ -106,6 +106,11 @@ function ExpertConnectForm() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
 
+  // Idempotency key: generated once per form mount. Reused on network retries
+  // so the same logical submission is deduplicated server-side. A genuinely new
+  // enquiry (form remount) gets a new key.
+  const idempotencyKeyRef = useRef(() => crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString("hex"))();
+
   const showCity = form.coachingPreference === "In-person 1:1 coaching";
   const showUnder18Notice = form.ageGroup === "Under 18";
 
@@ -167,6 +172,7 @@ function ExpertConnectForm() {
     setLoading(true);
     try {
       const payload = {
+        idempotencyKey: idempotencyKeyRef.current,
         fullName: form.fullName.trim(),
         email: form.email.trim(),
         countryCode: form.phoneNumber.trim() ? form.countryCode : "",
@@ -195,6 +201,10 @@ function ExpertConnectForm() {
       }
 
       setSubmitted(true);
+      // Regenerate the idempotency key so a genuinely new enquiry (same form,
+      // remounted or refilled) uses a fresh token. The previous key remains
+      // bound to the already-accepted submission.
+      idempotencyKeyRef.current = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString("hex");
       setForm((prev) => ({
         ...prev,
         fullName: "",
