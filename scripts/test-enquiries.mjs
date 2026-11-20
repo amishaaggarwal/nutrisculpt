@@ -1,24 +1,37 @@
-import test from "node:test";
+import test, { after } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-
-// Use a temp JSON data file so tests never touch the owner's production data.
-const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "nutrisculpt-enq-test-"));
-const tmpFile = path.join(tmpDir, "enquiries.json");
-process.env.ENQUIRIES_DATA_PATH = tmpFile;
-
+import { neon, neonConfig } from "@neondatabase/serverless";
 import {
   ENQUIRY_CATEGORY_ALLOWLIST,
   ENQUIRY_SERVICE_OPTIONS,
   GOAL_ALLOWLIST,
 } from "../constants/services.js";
 import { isValidCalculatorSource } from "../lib/back-link-security.mjs";
+import { getDatabaseConfig, __setSqlForTesting, __clearSqlForTesting } from "../lib/db.js";
 
-import {
+// Configure local fixtures before importing the storage module, which reads
+// the data path at import time. Keep this suite offline even with inherited credentials.
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "nutrisculpt-enq-test-"));
+const tmpFile = path.join(tmpDir, "enquiries.json");
+process.env.ENQUIRIES_DATA_PATH = tmpFile;
+process.env.NODE_ENV = "test";
+delete process.env.DATABASE_URL;
+delete process.env.DATABASE_URL_POOLED;
+neonConfig.fetchFunction = () => {
+  throw new Error("Unexpected Neon access in the offline enquiry suite");
+};
+
+after(() => {
+  fs.rmSync(tmpFile, { force: true });
+  fs.rmSync(`${tmpFile}.${process.pid}.tmp`, { force: true });
+  fs.rmdirSync(tmpDir);
+});
+
+const {
   STATUS_VALUES,
-  STATUS_LABELS,
   createEnquiry,
   createEnquiryDb,
   listEnquiries,
@@ -33,15 +46,9 @@ import {
   makeFingerprint,
   makeSubmissionFingerprint,
   hashPayload,
-  checkIdempotencyKey,
-  recordIdempotencyKey,
-  checkRapidDuplicate,
-  recordFingerprint,
-  cleanupOldFingerprints,
+  IDEMPOTENCY_WINDOW_MS,
   DUPLICATE_WINDOW_MS,
-} from "../lib/enquiries.js";
-
-import { getDatabaseConfig, __setSqlForTesting, __clearSqlForTesting } from "../lib/db.js";
+} = await import("../lib/enquiries.js");
 
 // Route.js source allowlist (mirrors the API route validation).
 const ROUTE_SOURCE_ALLOWLIST = new Set([
@@ -172,7 +179,16 @@ test("createEnquiry normalizes status to 'new' by default", async () => {
   assert.equal(created.nextFollowUpAt, null);
 });
 
-test("createEnquiry rejects missing required name via underlying validation", async () => {
+test("protected submissions require configured database storage", async () => {
+  const email = "protected-submission-fixture@example.com";
+  await assert.rejects(createEnquiry({ ...VALID_PAYLOAD, email }, {
+    idempotencyKey: "fixture-key",
+    fingerprintSecret: "fixture-secret",
+  }), { code: "DB_CONFIG_MISSING" });
+  assert.deepEqual((await listEnquiries({ search: email })).items, []);
+});
+
+test("createEnquiry leaves required-name validation to the route", async () => {
   // The route layer validates fullName; createEnquiry trusts payload. Verify
   // normalizeRecord does not crash on empty name and still stores safely.
   const created = await createEnquiry({ ...VALID_PAYLOAD, fullName: "" });
@@ -180,31 +196,29 @@ test("createEnquiry rejects missing required name via underlying validation", as
 });
 
 test("listEnquiries returns newest first", async () => {
-  await createEnquiry({ ...VALID_PAYLOAD, fullName: "Older", submittedAt: "2026-01-01T00:00:00Z" });
-  await createEnquiry({ ...VALID_PAYLOAD, fullName: "Newer", submittedAt: "2026-03-01T00:00:00Z" });
-  const data = await listEnquiries({});
-  assert.ok(data.items.length >= 2);
-  const ids = data.items.map((i) => i.id);
-  const newerIdx = ids.indexOf("Newer"); // fullName not id; find by name
-  const names = data.items.map((i) => i.fullName);
-  const olderPos = names.indexOf("Older");
-  const newerPos = names.indexOf("Newer");
-  assert.ok(newerPos !== -1 && olderPos !== -1);
-  assert.ok(newerPos < olderPos, "Newer enquiry should appear before older");
+  const fixture = { ...VALID_PAYLOAD, email: "order-fixture@example.com" };
+  const older = await createEnquiry({ ...fixture, submittedAt: "2026-01-01T00:00:00Z" });
+  const newer = await createEnquiry({ ...fixture, submittedAt: "2026-03-01T00:00:00Z" });
+
+  const data = await listEnquiries({ search: fixture.email });
+  assert.deepEqual(data.items.map((item) => item.id), [newer.id, older.id]);
 });
 
 test("listEnquiries supports status filter", async () => {
-  const data = await listEnquiries({ status: "new" });
-  for (const item of data.items) {
-    assert.equal(item.status, "new");
-  }
+  const email = "status-filter-fixture@example.com";
+  const newest = await createEnquiry({ ...VALID_PAYLOAD, email });
+  await createClosedEnquiry({ email });
+  const data = await listEnquiries({ status: "new", search: email });
+  assert.deepEqual(data.items.map((item) => item.id), [newest.id]);
 });
 
 test("listEnquiries supports category filter", async () => {
-  const data = await listEnquiries({ category: "metabolic-bone-health" });
-  for (const item of data.items) {
-    assert.equal(item.selectedServiceCategory, "metabolic-bone-health");
-  }
+  const email = "category-filter-fixture@example.com";
+  const category = "metabolic-bone-health";
+  const matching = await createEnquiry({ ...VALID_PAYLOAD, email, selectedServiceCategory: category });
+  await createEnquiry({ ...VALID_PAYLOAD, email });
+  const data = await listEnquiries({ category, search: email });
+  assert.deepEqual(data.items.map((item) => item.id), [matching.id]);
 });
 
 test("updateEnquiry changes status without erasing other fields", async () => {
@@ -312,30 +326,37 @@ test("new enquiry cannot move to Trash", async () => {
 });
 
 test("contacted enquiry cannot move to Trash", async () => {
-  const created = await createEnquiry({ ...VALID_PAYLOAD, fullName: "Contacted User", status: "contacted" });
+  const created = await createEnquiry({ ...VALID_PAYLOAD, fullName: "Contacted User" });
+  await updateEnquiry(created.id, { status: "contacted" });
   const result = await trashEnquiry(created.id);
   assert.equal(result, null, "contacted enquiry must not be trashed");
 });
 
 test("consultation_scheduled enquiry cannot move to Trash", async () => {
-  const created = await createEnquiry({ ...VALID_PAYLOAD, fullName: "Consult User", status: "consultation_scheduled" });
+  const created = await createEnquiry({ ...VALID_PAYLOAD, fullName: "Consult User" });
+  await updateEnquiry(created.id, { status: "consultation_scheduled" });
   const result = await trashEnquiry(created.id);
   assert.equal(result, null, "consultation_scheduled enquiry must not be trashed");
 });
 
 test("trashed enquiry appears in Trash listing", async () => {
-  const toTrash = await createClosedEnquiry({ fullName: "Trashed One" });
-  await createClosedEnquiry({ fullName: "Active One" });
+  const email = "trash-listing-fixture@example.com";
+  const toTrash = await createClosedEnquiry({ fullName: "Trashed One", email });
+  const active = await createClosedEnquiry({ fullName: "Active One", email });
   await trashEnquiry(toTrash.id);
 
   // Direct read confirms the trashed state.
   const persisted = await readIncludingTrashed(toTrash.id);
   assert.ok(persisted.deletedAt, "deleted_at must be set on the trashed record");
 
-  // Trash listing must report at least one trashed record.
-  const trashed = await listEnquiries({ trashed: true });
-  assert.ok(trashed.counts.total >= 1, "Trash count must include at least one trashed enquiry");
-  assert.ok(trashed.items.some((i) => i.deletedAt != null), "Trash listing must include at least one trashed record");
+  const trashed = await listEnquiries({ trashed: true, search: email });
+  assert.equal(trashed.total, 1);
+  assert.deepEqual(trashed.items.map((item) => item.id), [toTrash.id]);
+  assert.equal(trashed.items[0].deletedAt, persisted.deletedAt);
+
+  const activeListing = await listEnquiries({ search: email });
+  assert.equal(activeListing.total, 1);
+  assert.deepEqual(activeListing.items.map((item) => item.id), [active.id]);
 });
 
 test("restore returns the same enquiry ID and preserves closed status", async () => {
@@ -402,18 +423,15 @@ test("repeated trash requests are handled safely", async () => {
   assert.equal(persisted.status, "closed", "restored record keeps closed status");
 });
 
-// Listing behaviour: trashed records are excluded from the active listing.
-// All records share the same submitted_at, so page-1 results depend on
-// insertion order; this assertion is checked only when pagination surfaces
-// the record.
-test("listing excludes trashed records when surfaced", async () => {
-  const alpha = await createClosedEnquiry({ fullName: "Alpha Trash", selectedServiceCategory: "strength-fitness-performance" });
+test("active listing includes a closed enquiry again after restore", async () => {
+  const email = "restore-listing-fixture@example.com";
+  const alpha = await createClosedEnquiry({ email });
   await trashEnquiry(alpha.id);
-
-  // Direct read is the source of truth for the trashed state.
-  const persisted = await readIncludingTrashed(alpha.id);
-  assert.ok(persisted.deletedAt, "trashed record must have deleted_at set");
-  assert.equal(persisted.status, "closed", "trashed record must keep closed status");
+  assert.deepEqual((await listEnquiries({ search: email })).items, []);
+  await restoreEnquiry(alpha.id);
+  const { items } = await listEnquiries({ search: email });
+  assert.deepEqual(items.map((item) => item.id), [alpha.id]);
+  assert.equal(items[0].status, "closed");
 });
 
 // ---------------------------------------------------------------------------
@@ -454,21 +472,15 @@ test("API action contract: new enquiry rejected for trash", async () => {
 });
 
 test("API action contract: contacted enquiry rejected for trash", async () => {
-  const created = await createEnquiry({
-    ...VALID_PAYLOAD,
-    fullName: "Contacted enquiry",
-    status: "contacted",
-  });
+  const created = await createEnquiry({ ...VALID_PAYLOAD, fullName: "Contacted enquiry" });
+  await updateEnquiry(created.id, { status: "contacted" });
   const result = await trashEnquiry(created.id);
   assert.equal(result, null, "contacted enquiry must not be trashed");
 });
 
 test("API action contract: consultation_scheduled enquiry rejected for trash", async () => {
-  const created = await createEnquiry({
-    ...VALID_PAYLOAD,
-    fullName: "Consultation enquiry",
-    status: "consultation_scheduled",
-  });
+  const created = await createEnquiry({ ...VALID_PAYLOAD, fullName: "Consultation enquiry" });
+  await updateEnquiry(created.id, { status: "consultation_scheduled" });
   const result = await trashEnquiry(created.id);
   assert.equal(result, null, "consultation_scheduled enquiry must not be trashed");
 });
@@ -564,489 +576,281 @@ test("hashPayload: produces stable SHA-256 output", () => {
   assert.equal(h1.length, 64, "SHA-256 hex digest is 64 chars");
 });
 
-// ---------------------------------------------------------------------------
-// Anti-spam: idempotency and duplicate detection with mocked SQL
-// These exercise the database functions without a real Neon connection.
-// ---------------------------------------------------------------------------
-
-function mockSql(behavior) {
-  const calls = [];
-  const sql = async (strings, ...values) => {
-    calls.push({ strings, values });
-    return await behavior(strings, values);
-    // tagged-template call returns array-like
-  };
-  sql.query = async (queryString, params) => {
-    calls.push({ strings: [queryString], values: params });
-    return await behavior(queryString, params);
-  };
-  return { sql, calls };
-}
-
-test("checkIdempotencyKey: returns null when key not present", async () => {
-  __clearSqlForTesting();
-  const { sql } = mockSql(async () => []);
-  __setSqlForTesting(sql);
-  const result = await checkIdempotencyKey(sql, "nonexistent-key");
-  assert.equal(result, null);
-  __clearSqlForTesting();
+test("hashPayload ignores submission time but distinguishes changed enquiry details", () => {
+  const original = hashPayload(VALID_PAYLOAD);
+  assert.equal(hashPayload({ ...VALID_PAYLOAD, submittedAt: "2026-03-01T00:00:00Z" }), original);
+  assert.notEqual(hashPayload({ ...VALID_PAYLOAD, primaryGoal: "Improve mobility" }), original);
 });
 
-test("checkIdempotencyKey: returns existing record when key present", async () => {
-  __clearSqlForTesting();
-  const existing = { enquiry_id: "existing-id", payload_hash: "abc123" };
-  const { sql } = mockSql(async () => [existing]);
-  __setSqlForTesting(sql);
-  const result = await checkIdempotencyKey(sql, "some-key");
-  assert.equal(result.enquiry_id, "existing-id");
-  assert.equal(result.payload_hash, "abc123");
-  __clearSqlForTesting();
-});
-
-test("recordIdempotencyKey: returns null on conflict (already exists)", async () => {
-  __clearSqlForTesting();
-  const { sql } = mockSql(async () => []);
-  __setSqlForTesting(sql);
-  const result = await recordIdempotencyKey(sql, "key1", "enquiry-1", "hash1");
-  assert.equal(result, null, "ON CONFLICT DO NOTHING returns no rows on conflict");
-  __clearSqlForTesting();
-});
-
-test("checkRapidDuplicate: returns false when no fingerprint within window", async () => {
-  __clearSqlForTesting();
-  const { sql } = mockSql(async () => []);
-  __setSqlForTesting(sql);
-  const result = await checkRapidDuplicate(sql, "some-fingerprint");
-  assert.equal(result, false);
-  __clearSqlForTesting();
-});
-
-test("checkRapidDuplicate: returns true when fingerprint exists within window", async () => {
-  __clearSqlForTesting();
-  const { sql } = mockSql(async () => [{ 1: 1 }]);
-  __setSqlForTesting(sql);
-  const result = await checkRapidDuplicate(sql, "some-fingerprint");
-  assert.equal(result, true);
-  __clearSqlForTesting();
-});
-
-test("DUPLICATE_WINDOW_MS is 10 minutes", () => {
+test("idempotency lasts 24 hours and the duplicate window lasts 10 minutes", () => {
+  assert.equal(IDEMPOTENCY_WINDOW_MS, 24 * 60 * 60 * 1000);
   assert.equal(DUPLICATE_WINDOW_MS, 10 * 60 * 1000);
 });
 
 // ---------------------------------------------------------------------------
-// Anti-spam: transactional createEnquiryDb tests with mocked Neon SQL
-// These exercise the database functions with a mocked transaction client,
-// without a real Neon connection. They verify atomicity, idempotency,
-// duplicate detection, and pre-migration graceful degradation.
+// Production Neon HTTP driver with an in-process response double. The driver
+// builds and validates the real requests. The response double never executes SQL.
 // ---------------------------------------------------------------------------
 
-// Build a mock SQL client with a transaction method. The `behaviors` object
-// lets each test script the tagged-template and query responses.
-function mockTransactionSql(behaviors = {}) {
+const FAKE_DB_URL = "postgresql://fixture:fixture@offline.invalid/enquiries";
+const STORAGE_OPTIONS = { idempotencyKey: "fixture-key", fingerprintSecret: "fixture-secret" };
+const STORAGE_ROW = {
+  id: "stored-enquiry",
+  full_name: "Jane Doe",
+  email: "jane@example.com",
+  status: "new",
+  deleted_at: null,
+  submitted_at: VALID_PAYLOAD.submittedAt,
+  updated_at: VALID_PAYLOAD.updatedAt,
+};
+
+function useNeonHttpMock(t, respond) {
   const calls = [];
-  let transactionDepth = 0;
-
-  // Default behavior: enquiry INSERT returns a row, everything else returns [].
-  const defaultTagged = async (strings, ...values) => {
-    const all = strings.join(" ");
-    if (all.includes("INTO enquiries") && all.includes("RETURNING")) {
-      return [{ id: "enquiry-mock-id", full_name: "Mock", email: "mock@example.com", status: "new", deleted_at: null, submitted_at: new Date().toISOString(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() }];
-    }
-    return [];
+  const originalFetch = neonConfig.fetchFunction;
+  process.env.DATABASE_URL = FAKE_DB_URL;
+  __setSqlForTesting(neon(FAKE_DB_URL));
+  neonConfig.fetchFunction = async (_url, request) => {
+    const body = JSON.parse(request.body);
+    calls.push({ body, headers: request.headers });
+    return respond(body, calls.length);
   };
-
-  // A mock transaction-scoped query client (callable as tagged template).
-  const tx = async (strings, ...values) => {
-    calls.push({ strings, values, context: "tx-tagged" });
-    if (behaviors.txTagged) {
-      return await behaviors.txTagged(strings, values);
-    }
-    return await defaultTagged(strings, ...values);
-  };
-  tx.query = async (queryString, params) => {
-    calls.push({ strings: [queryString], values: params, context: "tx-query" });
-    if (behaviors.txQuery) {
-      return await behaviors.txQuery(queryString, params);
-    }
-    return [];
-  };
-
-  // sql is both callable (tagged template) and an object with properties.
-  const sql = async (strings, ...values) => {
-    calls.push({ strings, values, context: "sql-tagged" });
-    if (behaviors.sqlTagged) {
-      return await behaviors.sqlTagged(strings, values);
-    }
-    return await defaultTagged(strings, ...values);
-  };
-  sql.transaction = async (callback) => {
-    transactionDepth += 1;
-    try {
-      return await callback(tx);
-    } finally {
-      transactionDepth -= 1;
-    }
-  };
-  sql.query = async (queryString, params) => {
-    calls.push({ strings: [queryString], values: params, context: "sql-query" });
-    if (behaviors.sqlQuery) {
-      return await behaviors.sqlQuery(queryString, params);
-    }
-    return [];
-  };
-  return { sql, calls, tx, getTransactionDepth: () => transactionDepth };
+  t.after(() => {
+    delete process.env.DATABASE_URL;
+    __clearSqlForTesting();
+    neonConfig.fetchFunction = originalFetch;
+  });
+  return calls;
 }
 
-test("createEnquiryDb: first submission succeeds within transaction", async () => {
-  __clearSqlForTesting();
-  const createdId = "enquiry-new-1";
-  const { sql } = mockTransactionSql({
-    txTagged: async (strings, ...values) => {
-      const all = strings.join(" ");
-      if (all.includes("INTO enquiries") && all.includes("RETURNING")) {
-        return [{ id: createdId, full_name: "First Submission", email: "first@example.com", status: "new", deleted_at: null, submitted_at: new Date().toISOString(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() }];
-      }
-      return [];
-    },
-    txQuery: async () => [],
-  });
-  __setSqlForTesting(sql);
-
-  const payload = {
-    ...VALID_PAYLOAD,
-    fullName: "First Submission",
-    email: "first@example.com",
-  };
-  const result = await createEnquiryDb(payload, {
-    idempotencyKey: "key-first",
-    fingerprintSecret: "test-secret",
-  });
-
-  assert.ok(result, "first submission should return a record");
-  assert.equal(result.id, createdId, "returned record should have the inserted id");
-  assert.equal(result.status, "new");
-  __clearSqlForTesting();
-});
-
-test("createEnquiryDb: same idempotency key + same payload returns original (idempotent)", async () => {
-  __clearSqlForTesting();
-  const existingId = "enquiry-existing";
-  const payload = {
-    ...VALID_PAYLOAD,
-    fullName: "Same Submission",
-    email: "same@example.com",
-  };
-  const existingHash = hashPayload(payload);
-  const { sql } = mockTransactionSql({
-    txTagged: async (strings, ...values) => {
-      const first = strings[0];
-      // Idempotency key INSERT ON CONFLICT returns no rows (key already exists)
-      if (first.includes("enquiry_idempotency_keys") && first.includes("INSERT")) {
-        return [];
-      }
-      // SELECT existing key returns the existing record with matching hash
-      if (first.includes("enquiry_idempotency_keys") && first.includes("SELECT")) {
-        return [{ enquiry_id: existingId, payload_hash: existingHash }];
-      }
-      // SELECT enquiry by id returns the existing record
-      if (first.includes("FROM enquiries") && first.includes("WHERE id")) {
-        return [{ id: existingId, full_name: "Existing", email: "existing@example.com", status: "new", deleted_at: null, submitted_at: new Date().toISOString(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() }];
-      }
-      return [];
-    },
-  });
-  __setSqlForTesting(sql);
-
-  const result = await createEnquiryDb(payload, {
-    idempotencyKey: "key-existing",
-    fingerprintSecret: "test-secret",
-  });
-
-  assert.ok(result, "idempotent retry should return a record");
-  assert.equal(result.id, existingId, "should return the original enquiry id");
-  __clearSqlForTesting();
-});
-
-test("createEnquiryDb: same idempotency key + different payload → 409 conflict", async () => {
-  __clearSqlForTesting();
-  const existingId = "enquiry-existing";
-  const existingHash = "existing-payload-hash";
-  const { sql } = mockTransactionSql({
-    txTagged: async (strings, ...values) => {
-      const first = strings[0];
-      // Idempotency key INSERT ON CONFLICT returns no rows (key already exists)
-      if (first.includes("enquiry_idempotency_keys") && first.includes("INSERT")) {
-        return [];
-      }
-      // SELECT existing key returns the existing record with different hash
-      if (first.includes("enquiry_idempotency_keys") && first.includes("SELECT")) {
-        return [{ enquiry_id: existingId, payload_hash: existingHash }];
-      }
-      return [];
-    },
-    txQuery: async () => [],
-  });
-  __setSqlForTesting(sql);
-
-  const payload = {
-    ...VALID_PAYLOAD,
-    fullName: "Conflicting Submission",
-    email: "conflict@example.com",
-  };
-  let threw = false;
-  try {
-    await createEnquiryDb(payload, {
-      idempotencyKey: "key-conflict",
-      fingerprintSecret: "test-secret",
-    });
-  } catch (err) {
-    threw = true;
-    assert.equal(err.code, "IDEMPOTENCY_CONFLICT", "should throw IDEMPOTENCY_CONFLICT");
-    assert.equal(err.status, 409, "should have HTTP 409 status");
-  }
-  assert.ok(threw, "should have thrown on conflicting payload");
-  __clearSqlForTesting();
-});
-
-test("createEnquiryDb: rapid duplicate fingerprint → 429", async () => {
-  __clearSqlForTesting();
-  const { sql } = mockTransactionSql({
-    txTagged: async (strings, ...values) => {
-      const first = strings[0];
-      // Idempotency key INSERT returns a row (key is new)
-      if (first.includes("enquiry_idempotency_keys") && first.includes("INSERT")) {
-        return [{ enquiry_id: "new-id", payload_hash: "hash" }];
-      }
-      // Rapid duplicate check returns a row (duplicate found)
-      if (first.includes("enquiry_submission_fingerprints") && first.includes("SELECT")) {
-        return [{ 1: 1 }];
-      }
-      return [];
-    },
-  });
-  __setSqlForTesting(sql);
-
-  const payload = {
-    ...VALID_PAYLOAD,
-    fullName: "Duplicate Submission",
-    email: "duplicate@example.com",
-  };
-  let threw = false;
-  try {
-    await createEnquiryDb(payload, {
-      idempotencyKey: "key-duplicate",
-      fingerprintSecret: "test-secret",
-    });
-  } catch (err) {
-    threw = true;
-    assert.equal(err.code, "DUPLICATE_ENQUIRY", "should throw DUPLICATE_ENQUIRY");
-    assert.equal(err.status, 429, "should have HTTP 429 status");
-  }
-  assert.ok(threw, "should have thrown on duplicate fingerprint");
-  __clearSqlForTesting();
-});
-
-test("createEnquiryDb: transaction rolls back on enquiry insert failure", async () => {
-  __clearSqlForTesting();
-  let txCalls = 0;
-  const { sql } = mockTransactionSql({
-    txTagged: async (strings, ...values) => {
-      const first = strings[0];
-      // Idempotency key check returns empty (key is new)
-      if (first.includes("enquiry_idempotency_keys") && first.includes("SELECT")) {
-        return [];
-      }
-      // Rapid duplicate check returns empty
-      if (first.includes("enquiry_submission_fingerprints") && first.includes("SELECT")) {
-        return [];
-      }
-      // Enquiry INSERT fails
-      if (first.includes("INTO enquiries")) {
-        txCalls += 1;
-        throw new Error("Database connection lost");
-      }
-      return [];
-    },
-    txQuery: async () => [],
-  });
-  __setSqlForTesting(sql);
-
-  const payload = {
-    ...VALID_PAYLOAD,
-    fullName: "Failed Submission",
-    email: "fail@example.com",
-  };
-  let threw = false;
-  try {
-    await createEnquiryDb(payload, {
-      idempotencyKey: "key-fail",
-      fingerprintSecret: "test-secret",
-    });
-  } catch (err) {
-    threw = true;
-    assert.equal(err.message, "Database connection lost");
-  }
-  assert.ok(threw, "should throw on insert failure");
-  // The transaction should have been attempted (depth > 0 at some point)
-  assert.ok(txCalls === 1, "enquiry INSERT should have been attempted once");
-  __clearSqlForTesting();
-});
-
-test("createEnquiryDb: missing anti-spam tables falls back to unprotected insert", async () => {
-  __clearSqlForTesting();
-  const { sql } = mockTransactionSql({
-    txTagged: async (strings, ...values) => {
-      const first = strings[0];
-      // Idempotency key INSERT fails because table doesn't exist
-      if (first.includes("enquiry_idempotency_keys")) {
-        throw new Error('relation "enquiry_idempotency_keys" does not exist');
-      }
-      return [];
-    },
-  });
-  __setSqlForTesting(sql);
-
-  const payload = {
-    ...VALID_PAYLOAD,
-    fullName: "Fallback Submission",
-    email: "fallback@example.com",
-  };
-  // Should NOT throw - should fall back to unprotected insert
-  const result = await createEnquiryDb(payload, {
-    idempotencyKey: "key-fallback",
-    fingerprintSecret: "test-secret",
-  });
-
-  assert.ok(result, "fallback insert should return a record");
-  __clearSqlForTesting();
-});
-
-test("createEnquiryDb: no idempotency key → no dedup check, normal insert", async () => {
-  __clearSqlForTesting();
-  const { sql } = mockTransactionSql({
-    txQuery: async () => [],
-  });
-  __setSqlForTesting(sql);
-
-  const payload = {
-    ...VALID_PAYLOAD,
-    fullName: "No Key Submission",
-    email: "nokey@example.com",
-  };
-  const result = await createEnquiryDb(payload); // no idempotencyKey, no fingerprintSecret
-
-  assert.ok(result, "submission without key should succeed");
-  assert.equal(result.status, "new");
-  __clearSqlForTesting();
-});
-
-test("createEnquiryDb: no fingerprint secret → no duplicate check", async () => {
-  __clearSqlForTesting();
-  const { sql } = mockTransactionSql({
-    txQuery: async () => [],
-  });
-  __setSqlForTesting(sql);
-
-  const payload = {
-    ...VALID_PAYLOAD,
-    fullName: "No Fingerprint Submission",
-    email: "nofp@example.com",
-  };
-  const result = await createEnquiryDb(payload, {
-    idempotencyKey: "key-nofp",
-    // no fingerprintSecret
-  });
-
-  assert.ok(result, "submission without fingerprint secret should succeed");
-  __clearSqlForTesting();
-});
-
-// ---------------------------------------------------------------------------
-// Neon read-only integration tests
-// These exercise the real PostgreSQL path (not the JSON fallback) and would
-// catch a recurrence of the unsupported sql(string, params) calling convention
-// that caused HTTP 500 on admin enquiry retrieval.
-// No data is mutated - read-only operations only.
-// ---------------------------------------------------------------------------
-
-function loadEnvLocalForNeon() {
-  const envPath = path.join(process.cwd(), ".env.local");
-  if (!fs.existsSync(envPath)) return false;
-  const content = fs.readFileSync(envPath, "utf8");
-  let loaded = false;
-  for (const line of content.split(/\r?\n/)) {
-    const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
-    if (!m) continue;
-    const key = m[1];
-    let val = m[2] || "";
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1);
-    }
-    if (!process.env[key]) {
-      process.env[key] = val;
-      loaded = true;
-    }
-  }
-  return loaded;
+function resultSet(columns = {}, rows = []) {
+  const fields = Object.entries(columns).map(([name, dataTypeID]) => ({ name, dataTypeID }));
+  return { fields, rows };
 }
 
-test("Neon: listEnquiries returns active records via sql.query()", async () => {
-  const envLoaded = loadEnvLocalForNeon();
-  if (!envLoaded) {
-    console.log("Skipping Neon test: .env.local not found or DATABASE_URL not set");
-    return;
-  }
-  // Dynamically import so shouldUseDb() picks up DATABASE_URL from .env.local
-  const { listEnquiries: neonList } = await import("../lib/enquiries.js");
-  const data = await neonList({ search: "", status: "all", category: "all", dateFrom: "", dateTo: "", page: 1, pageSize: 20, trashed: false });
-  assert.ok(Array.isArray(data.items), "items must be an array");
-  assert.ok(typeof data.total === "number" && data.total >= 0, "total must be a non-negative number");
-  assert.ok(typeof data.counts === "object", "counts must be an object");
-  assert.ok(typeof data.counts.total === "number", "counts.total must be a number");
-  // All returned items should be active (deletedAt null)
-  for (const item of data.items) {
-    assert.equal(item.deletedAt, null, "active listing must exclude trashed records");
-  }
+function outcomeResponse({ queries }, outcome, row = null, retryAfterSeconds = null) {
+  const result = resultSet({ outcome: 25, enquiry: 3802, retry_after_seconds: 23 }, [
+    [outcome, row === null ? null : JSON.stringify(row), retryAfterSeconds === null ? null : String(retryAfterSeconds)],
+  ]);
+  return Response.json({
+    results: queries.map(({ query }) => /INSERT INTO enquiries\b/i.test(query) ? result : resultSet()),
+  });
+}
+
+function databaseError(code, message) {
+  return Response.json({ code, message }, { status: 400 });
+}
+
+test("createEnquiryDb uses one supported Neon batch with ordered transaction locks", async (t) => {
+  const calls = useNeonHttpMock(t, (body) => outcomeResponse(body, "created", STORAGE_ROW));
+  const created = await createEnquiryDb(VALID_PAYLOAD, STORAGE_OPTIONS);
+  assert.equal(created.id, STORAGE_ROW.id);
+  assert.equal(created.status, "new");
+  assert.equal(created.replayed, undefined);
+
+  assert.equal(calls.length, 1, "locks and writes must share one Neon batch");
+  const [{ body: { queries }, headers }] = calls;
+  assert.equal(headers["Neon-Batch-Isolation-Level"], "ReadCommitted");
+  assert.equal(queries.length, 4);
+  const [idempotencyLock, fingerprintLock, submission, cleanup] = queries;
+  assert.match(idempotencyLock.query, /pg_advisory_xact_lock\(/i);
+  assert.match(fingerprintLock.query, /pg_advisory_xact_lock\(/i);
+  assert.notDeepEqual(idempotencyLock.params, fingerprintLock.params);
+  assert.match(submission.query, /INSERT INTO enquiries\b/i);
+  assert.match(submission.query, /INSERT INTO enquiry_idempotency_keys\b/i);
+  assert.match(submission.query, /INSERT INTO enquiry_submission_fingerprints\b/i);
+  assert.match(cleanup.query, /FOR UPDATE SKIP LOCKED/i);
+  assert.doesNotMatch(cleanup.query, /DELETE FROM enquiries\b/i);
 });
 
-test("Neon: getEnquiryById retrieves active record via tagged template", async () => {
-  const envLoaded = loadEnvLocalForNeon();
-  if (!envLoaded) {
-    console.log("Skipping Neon test: .env.local not found or DATABASE_URL not set");
-    return;
-  }
-  const { listEnquiries: neonList, getEnquiryById: neonGet } = await import("../lib/enquiries.js");
-  const data = await neonList({ search: "", status: "all", category: "all", dateFrom: "", dateTo: "", page: 1, pageSize: 1, trashed: false });
-  assert.ok(data.items.length >= 1, "need at least one active enquiry to test getEnquiryById");
-  const targetId = data.items[0].id;
-  const fetched = await neonGet(targetId);
-  assert.ok(fetched, "enquiry must be retrievable by id");
-  assert.equal(fetched.id, targetId, "returned id must match");
-  assert.equal(fetched.deletedAt, null, "active enquiry must have deletedAt null");
+test("same-key overlapping submissions use the same locks and map a replay to the original record", async (t) => {
+  const originalTimestamp = new Date(VALID_PAYLOAD.submittedAt).toISOString();
+  const calls = useNeonHttpMock(t, (body) => outcomeResponse(
+    body,
+    body.queries[2].params.includes(originalTimestamp) ? "created" : "replay",
+    STORAGE_ROW,
+  ));
+
+  const [first, replay] = await Promise.all([
+    createEnquiryDb(VALID_PAYLOAD, STORAGE_OPTIONS),
+    createEnquiryDb({ ...VALID_PAYLOAD, submittedAt: "2026-01-01T00:01:00Z" }, STORAGE_OPTIONS),
+  ]);
+  assert.equal(first.id, STORAGE_ROW.id);
+  assert.equal(replay.id, first.id);
+  assert.equal(replay.replayed, true);
+  assert.equal(calls.length, 2);
+  const [firstBatch, retryBatch] = calls.map(({ body }) => body.queries);
+  assert.deepEqual(firstBatch.slice(0, 2), retryBatch.slice(0, 2));
+  assert.ok(firstBatch[2].params.includes(hashPayload(VALID_PAYLOAD)));
+  assert.ok(retryBatch[2].params.includes(hashPayload(VALID_PAYLOAD)));
 });
 
-test("Neon: getEnquiryById includeTrashed works via tagged template", async () => {
-  const envLoaded = loadEnvLocalForNeon();
-  if (!envLoaded) {
-    console.log("Skipping Neon test: .env.local not found or DATABASE_URL not set");
-    return;
-  }
-  const { getEnquiryById: neonGet } = await import("../lib/enquiries.js");
-  // Use any existing id; includeTrashed should not apply deleted_at IS NULL filter
-  const fetched = await neonGet("00000000-0000-0000-0000-000000000000", { includeTrashed: true });
-  assert.equal(fetched, null, "nonexistent id must return null even with includeTrashed");
+test("same key and conflicting payload holds the same idempotency lock and reports a conflict", async (t) => {
+  const calls = useNeonHttpMock(t, (body, call) =>
+    outcomeResponse(body, call === 1 ? "created" : "conflict", call === 1 ? STORAGE_ROW : null),
+  );
+  const changed = { ...VALID_PAYLOAD, primaryGoal: "Improve mobility" };
+
+  await createEnquiryDb(VALID_PAYLOAD, STORAGE_OPTIONS);
+  await assert.rejects(createEnquiryDb(changed, STORAGE_OPTIONS), { code: "IDEMPOTENCY_CONFLICT" });
+  assert.equal(calls.length, 2);
+  const [original, conflict] = calls.map(({ body }) => body.queries);
+  assert.deepEqual(original[0], conflict[0]);
+  assert.notDeepEqual(original[1].params, conflict[1].params);
+  assert.ok(conflict[2].params.includes(hashPayload(changed)));
 });
 
-// ---------------------------------------------------------------------------
-// DB config detection (no secret values printed)
-// ---------------------------------------------------------------------------
+test("different keys for matching contacts and goals share a fingerprint lock and report a remaining cooldown", async (t) => {
+  const calls = useNeonHttpMock(t, (body) => body.queries[0].params[0] === STORAGE_OPTIONS.idempotencyKey
+    ? outcomeResponse(body, "created", STORAGE_ROW)
+    : outcomeResponse(body, "duplicate", null, 245),
+  );
+  const results = await Promise.allSettled([
+    createEnquiryDb(VALID_PAYLOAD, STORAGE_OPTIONS),
+    createEnquiryDb({ ...VALID_PAYLOAD, phoneNumber: "5551234" }, { ...STORAGE_OPTIONS, idempotencyKey: "another-key" }),
+  ]);
+  assert.equal(results[0].status, "fulfilled");
+  assert.equal(results[1].status, "rejected");
+  assert.equal(results[1].reason.code, "DUPLICATE_ENQUIRY");
+  assert.equal(results[1].reason.retryAfterSeconds, 245);
+  assert.equal(calls.length, 2);
+  const [firstBatch, duplicateBatch] = calls.map(({ body }) => body.queries);
+  assert.notDeepEqual(firstBatch[0].params, duplicateBatch[0].params);
+  assert.deepEqual(firstBatch[1], duplicateBatch[1]);
+});
 
+test("a failed database batch propagates the error and retries the same lock keys", async (t) => {
+  const calls = useNeonHttpMock(t, (body, call) => call === 1
+    ? databaseError("23514", "enquiry violates a check constraint")
+    : outcomeResponse(body, "created", STORAGE_ROW),
+  );
 
-// ---------------------------------------------------------------------------
-// Cleanup
-// ---------------------------------------------------------------------------
+  await assert.rejects(createEnquiryDb(VALID_PAYLOAD, STORAGE_OPTIONS), { code: "23514" });
+  assert.equal(calls.length, 1, "failure must not trigger another insert outside the batch");
+  const retry = await createEnquiryDb(VALID_PAYLOAD, STORAGE_OPTIONS);
+  assert.equal(retry.id, STORAGE_ROW.id);
+  assert.equal(calls.length, 2);
+  assert.deepEqual(calls[0].body.queries.slice(0, 2), calls[1].body.queries.slice(0, 2));
+});
 
-test("teardown removes temp data file", () => {
-  try { fs.rmSync(tmpDir, { recursive: true }); } catch {}
+for (const relation of ["enquiry_idempotency_keys", "enquiry_submission_fingerprints"]) {
+  test(`missing ${relation} fails without a fallback write`, async (t) => {
+    const calls = useNeonHttpMock(t, () => databaseError("42P01", `relation "${relation}" does not exist`));
+    await assert.rejects(createEnquiryDb(VALID_PAYLOAD, STORAGE_OPTIONS), { code: "ENQUIRY_PROTECTION_UNAVAILABLE" });
+    assert.equal(calls.length, 1);
+  });
+}
+
+test("an unrelated missing relation remains a database error", async (t) => {
+  const calls = useNeonHttpMock(t, () => databaseError("42P01", 'relation "enquiries" does not exist'));
+  await assert.rejects(createEnquiryDb(VALID_PAYLOAD, STORAGE_OPTIONS), { code: "42P01" });
+  assert.equal(calls.length, 1);
+});
+
+test("an empty database response cannot report that an enquiry was saved", async (t) => {
+  useNeonHttpMock(t, ({ queries }) => Response.json({ results: queries.map(() => resultSet()) }));
+  await assert.rejects(createEnquiryDb(VALID_PAYLOAD, STORAGE_OPTIONS));
+});
+
+test("the SQL expires keys and fingerprints and writes protection only for inserted enquiries", async (t) => {
+  const calls = useNeonHttpMock(t, (body) => outcomeResponse(body, "created", STORAGE_ROW));
+  await createEnquiryDb(VALID_PAYLOAD, STORAGE_OPTIONS);
+  const [, , submission, cleanup] = calls[0].body.queries;
+
+  assert.match(submission.query, /clock_timestamp\(\) AS checked_at/i);
+  assert.match(submission.query, /k\.created_at > s\.checked_at - s\.key_window/i);
+  assert.match(submission.query, /f\.created_at > s\.checked_at - s\.duplicate_window/i);
+  assert.match(submission.query, /f\.created_at \+ s\.duplicate_window AS expires_at/i);
+  assert.match(submission.query, /NOT EXISTS \(SELECT FROM existing_key\)\s+AND NOT EXISTS \(SELECT FROM recent_fingerprint\)/i);
+  assert.match(submission.query, /SELECT s\.idempotency_key, i\.id, s\.payload_hash, s\.checked_at\s+FROM inserted i\b/i);
+  assert.match(submission.query, /SELECT s\.fingerprint, s\.checked_at\s+FROM inserted\b/i);
+  assert.match(submission.query, /ON CONFLICT \(idempotency_key\) DO UPDATE/i);
+  assert.match(submission.query, /ON CONFLICT \(fingerprint\) DO UPDATE/i);
+  assert.match(submission.query, /CEIL\(EXTRACT\(EPOCH FROM \(f\.expires_at - s\.checked_at\)\)\)/i);
+  assert.deepEqual(submission.params.slice(3, 5), ["86400", "600"]);
+  assert.deepEqual(cleanup.params, ["86400", "1800"]);
+});
+
+test("a replay returns the stored record even when it is in Trash", async (t) => {
+  const deletedAt = "2026-01-01T00:04:00.000Z";
+  useNeonHttpMock(t, (body) => outcomeResponse(body, "replay", {
+    ...STORAGE_ROW,
+    status: "closed",
+    deleted_at: deletedAt,
+  }));
+  const replay = await createEnquiryDb(VALID_PAYLOAD, STORAGE_OPTIONS);
+  assert.equal(replay.replayed, true);
+  assert.equal(replay.id, STORAGE_ROW.id);
+  assert.equal(replay.status, "closed");
+  assert.equal(replay.deletedAt, deletedAt);
+});
+
+test("SQL calls without storage options issue no advisory lock queries", async (t) => {
+  const calls = useNeonHttpMock(t, (body) => outcomeResponse(body, "created", STORAGE_ROW));
+  const created = await createEnquiryDb(VALID_PAYLOAD);
+  assert.equal(created.id, STORAGE_ROW.id);
+  assert.equal(calls.length, 1);
+  const { queries } = calls[0].body;
+  assert.equal(queries.length, 2);
+  assert.deepEqual(queries[0].params.slice(0, 3), [null, null, null]);
+});
+
+test("database listing binds all filters consistently across its SQL queries", async (t) => {
+  const calls = useNeonHttpMock(t, ({ query }) => {
+    if (/GROUP BY selected_service_category/i.test(query)) {
+      return Response.json(resultSet({ category: 25, count: 23 }, [["metabolic-bone-health", "1"]]));
+    }
+    if (/COUNT\(\*\) FILTER/i.test(query)) {
+      return Response.json(resultSet({ total: 23, closed: 23 }, [["1", "1"]]));
+    }
+    if (/COUNT\(\*\)/i.test(query)) {
+      return Response.json(resultSet({ count: 23 }, [["1"]]));
+    }
+    return Response.json(resultSet({ id: 25, status: 25, deleted_at: 25 }, [
+      ["trashed-id", "closed", "2026-01-01T00:00:00Z"],
+    ]));
+  });
+
+  const list = await listEnquiries({
+    search: "Fixture",
+    status: "closed",
+    category: "metabolic-bone-health",
+    dateFrom: "2026-01-01",
+    dateTo: "2026-03-01",
+    page: 2,
+    pageSize: 3,
+    trashed: true,
+  });
+
+  const expectedFilters = ["closed", "metabolic-bone-health", "%fixture%", "2026-01-01", "2026-03-01T23:59:59.999Z"];
+  assert.equal(calls.length, 4);
+  for (const { body: { query, params } } of calls) {
+    assert.match(query, /deleted_at IS NOT NULL/i);
+    assert.match(query, /status = \$1 AND selected_service_category = \$2/i);
+    const placeholders = new Set(Array.from(query.matchAll(/\$(\d+)/g), ([, index]) => Number(index)));
+    assert.deepEqual([...placeholders], params.map((_, index) => index + 1));
+    assert.deepEqual(params.slice(0, 5), expectedFilters);
+    if (/ORDER BY/i.test(query)) {
+      assert.match(query, /ORDER BY submitted_at DESC NULLS LAST, created_at DESC\s+LIMIT \$6 OFFSET \$7/i);
+      assert.deepEqual(params.slice(5), ["3", "3"]);
+    }
+  }
+  assert.deepEqual(list.items.map(({ id }) => id), ["trashed-id"]);
+  assert.equal(list.items[0].deletedAt, "2026-01-01T00:00:00.000Z");
+  assert.equal(list.total, 1);
+  assert.equal(list.counts.closed, 1);
+  assert.deepEqual(list.byCategory, { "metabolic-bone-health": 1 });
+});
+
+test("database lookup's tagged queries honor the includeTrashed switch", async (t) => {
+  const calls = useNeonHttpMock(t, ({ query }) => Response.json(resultSet(
+    { id: 25, status: 25, deleted_at: 25 },
+    /deleted_at IS NULL/i.test(query) ? [] : [["trashed-id", "closed", "2026-01-01T00:00:00Z"]],
+  )));
+
+  assert.equal(await getEnquiryById("trashed-id"), null);
+  const stored = await getEnquiryById("trashed-id", { includeTrashed: true });
+  assert.equal(stored.id, "trashed-id");
+  assert.equal(stored.deletedAt, "2026-01-01T00:00:00.000Z");
+  assert.equal(calls.length, 2);
+  for (const { body } of calls) assert.deepEqual(body.params, ["trashed-id"]);
 });

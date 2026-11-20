@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useMemo, useState, Suspense } from "react";
+import React, { useMemo, useRef, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { isSafeBackHref, BACK_ROUTE_ALLOWLIST } from "@/lib/back-link-security";
+import { isSafeBackHref } from "@/lib/back-link-security";
 import {
   ENQUIRY_CATEGORY_ALLOWLIST,
   ENQUIRY_SERVICE_OPTIONS,
@@ -106,10 +106,8 @@ function ExpertConnectForm() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
 
-  // Idempotency key: generated once per form mount. Reused on network retries
-  // so the same logical submission is deduplicated server-side. A genuinely new
-  // enquiry (form remount) gets a new key.
-  const idempotencyKeyRef = useRef(() => crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString("hex"))();
+  const idempotencyKeyRef = useRef(null);
+  const submissionInFlight = useRef(false);
 
   const showCity = form.coachingPreference === "In-person 1:1 coaching";
   const showUnder18Notice = form.ageGroup === "Under 18";
@@ -165,12 +163,20 @@ function ExpertConnectForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (loading) return;
+    if (submissionInFlight.current) return;
     setError("");
     if (!validate()) return;
 
+    submissionInFlight.current = true;
     setLoading(true);
     try {
+      // Keep the key through errors that may occur after the server saves the enquiry.
+      if (!idempotencyKeyRef.current) {
+        idempotencyKeyRef.current = window.crypto.randomUUID?.() ??
+          Array.from(window.crypto.getRandomValues(new Uint8Array(16)), (byte) =>
+            byte.toString(16).padStart(2, "0"),
+          ).join("");
+      }
       const payload = {
         idempotencyKey: idempotencyKeyRef.current,
         fullName: form.fullName.trim(),
@@ -196,15 +202,14 @@ function ExpertConnectForm() {
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data?.success) {
+        // A conflict confirms the key is already bound to a different enquiry.
+        if (response.status === 409) idempotencyKeyRef.current = null;
         setError(data?.error || "We couldn't save your enquiry. Please try again.");
         return;
       }
 
       setSubmitted(true);
-      // Regenerate the idempotency key so a genuinely new enquiry (same form,
-      // remounted or refilled) uses a fresh token. The previous key remains
-      // bound to the already-accepted submission.
-      idempotencyKeyRef.current = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString("hex");
+      idempotencyKeyRef.current = null;
       setForm((prev) => ({
         ...prev,
         fullName: "",
@@ -218,9 +223,10 @@ function ExpertConnectForm() {
         privacyConsent: false,
         website: "",
       }));
-    } catch (err) {
+    } catch {
       setError("We couldn't save your enquiry. Please try again.");
     } finally {
+      submissionInFlight.current = false;
       setLoading(false);
     }
   };

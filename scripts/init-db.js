@@ -38,9 +38,8 @@ async function main() {
       statements.push(s);
     }
   }
-  for (const stmt of statements) {
-    await sql`${sql.unsafe(stmt)}`;
-  }
+  // Run the ordered DDL as a single batch so a failure leaves no partial schema.
+  await sql.transaction(statements.map((statement) => sql.query(statement)));
   console.log(`Schema initialized (${statements.length} statements).`);
 }
 

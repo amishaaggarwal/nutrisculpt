@@ -1,3 +1,5 @@
+import { createHmac, randomBytes } from "node:crypto";
+import { isIP } from "node:net";
 import { NextResponse } from "next/server";
 import { ENQUIRY_CATEGORY_ALLOWLIST, ENQUIRY_SERVICE_OPTIONS, GOAL_ALLOWLIST } from "@/constants/services";
 import { createEnquiry } from "@/lib/enquiries";
@@ -5,6 +7,7 @@ import { createEnquiry } from "@/lib/enquiries";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[0-9][0-9\s()-]{5,20}$/;
 const COUNTRY_CODE_RE = /^\+[0-9]{1,4}$/;
+const IDEMPOTENCY_KEY_RE = /^[\x21-\x7e]{1,128}$/;
 const AGE_GROUPS = new Set([
   "Under 18",
   "18–29",
@@ -36,11 +39,10 @@ const SOURCE_ALLOWLIST = new Set([
   "calculator-heart-rate",
 ]);
 
-// IP-based rate limit: max 5 submissions per 5 minutes per IP.
-// In-memory store is a reasonable first line of defense; database-backed
-// idempotency and fingerprinting provide the durable duplicate protection.
 const IP_WINDOW_MS = 5 * 60 * 1000;
 const IP_MAX_SUBMISSIONS = 5;
+const IP_MAX_TRACKED_CLIENTS = 10_000;
+const ipHashKey = randomBytes(32);
 const ipSubmissions = new Map();
 
 function clean(value, max = 200) {
@@ -48,33 +50,40 @@ function clean(value, max = 200) {
   return value.trim().slice(0, max);
 }
 
-function getClientIp(request) {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
-  return request.headers.get("x-real-ip") || "unknown";
+function getClientIpKey(request) {
+  // Set this to a header the ingress always overwrites with one client IP.
+  const trustedHeader = process.env.ENQUIRY_TRUSTED_IP_HEADER?.trim();
+  const ip = trustedHeader ? request.headers.get(trustedHeader)?.trim() : null;
+  if (!ip || !isIP(ip)) return null;
+  return createHmac("sha256", ipHashKey).update(ip).digest("hex");
 }
 
-function checkIpRateLimit(ip, now) {
+function getIpRetryAfterSeconds(ipKey, now) {
   const windowStart = now - IP_WINDOW_MS;
-  let entries = ipSubmissions.get(ip);
-  if (!entries) {
-    entries = [];
-  } else {
-    entries = entries.filter((t) => t > windowStart);
+  // Map order follows each client's last counted request.
+  for (const [key, entries] of ipSubmissions) {
+    if (entries.at(-1) > windowStart) break;
+    ipSubmissions.delete(key);
   }
+
+  const entries = ipSubmissions.get(ipKey)?.filter((time) => time > windowStart) ?? [];
   if (entries.length >= IP_MAX_SUBMISSIONS) {
-    const oldest = Math.min(...entries);
-    const retryAfterMs = oldest + IP_WINDOW_MS - now;
-    return { allowed: false, retryAfterSeconds: Math.ceil(Math.max(retryAfterMs, 0) / 1000) };
+    return Math.ceil((entries[0] + IP_WINDOW_MS - now) / 1000);
   }
-  entries.push(now);
-  ipSubmissions.set(ip, entries);
-  return { allowed: true };
+
+  ipSubmissions.delete(ipKey);
+  if (ipSubmissions.size === IP_MAX_TRACKED_CLIENTS) {
+    ipSubmissions.delete(ipSubmissions.keys().next().value);
+  }
+  ipSubmissions.set(ipKey, [...entries, now]);
+  return 0;
 }
 
-function getFingerprintSecret() {
-  // Prefer a dedicated secret; fall back to the admin session secret.
-  return process.env.ENQUIRY_FINGERPRINT_SECRET || process.env.ADMIN_SESSION_SECRET || "";
+function unavailableResponse() {
+  return NextResponse.json(
+    { error: "Enquiry submissions are temporarily unavailable. Please try again later." },
+    { status: 503 },
+  );
 }
 
 export async function POST(request) {
@@ -92,16 +101,14 @@ export async function POST(request) {
       );
     }
 
-    // --- IP-based rate limit (first line of defense) ---
-    const ip = getClientIp(request);
-    const now = Date.now();
-    const ipCheck = checkIpRateLimit(ip, now);
-    if (!ipCheck.allowed) {
+    const ipKey = getClientIpKey(request);
+    const ipRetryAfter = ipKey ? getIpRetryAfterSeconds(ipKey, performance.now()) : 0;
+    if (ipRetryAfter) {
       return NextResponse.json(
         { error: "Please wait a moment before submitting again." },
         {
           status: 429,
-          headers: { "Retry-After": String(ipCheck.retryAfterSeconds) },
+          headers: { "Retry-After": String(ipRetryAfter) },
         },
       );
     }
@@ -117,7 +124,7 @@ export async function POST(request) {
     const city = clean(body.city, 120);
     const requestedSource = clean(body.source || body.entrySource, 40);
     const rawGoalCategory = clean(body.primaryGoalCategory, 40);
-    const idempotencyKey = clean(body.idempotencyKey, 128);
+    const idempotencyKey = typeof body.idempotencyKey === "string" ? body.idempotencyKey.trim() : "";
 
     if (!fullName) {
       return NextResponse.json({ error: "Full name is required." }, { status: 400 });
@@ -156,6 +163,9 @@ export async function POST(request) {
     if (primaryGoal.length > 500) {
       return NextResponse.json({ error: "Primary goal must be 500 characters or fewer." }, { status: 400 });
     }
+    if (!IDEMPOTENCY_KEY_RE.test(idempotencyKey)) {
+      return NextResponse.json({ error: "A valid submission key is required." }, { status: 400 });
+    }
 
     const safeCoachingPreference = COACHING_OPTIONS.has(coachingPreference)
       ? coachingPreference
@@ -184,19 +194,20 @@ export async function POST(request) {
       status: "new",
     };
 
-    const fingerprintSecret = getFingerprintSecret();
+    const fingerprintSecret = process.env.ENQUIRY_FINGERPRINT_SECRET || process.env.ADMIN_SESSION_SECRET;
+    if (!fingerprintSecret) return unavailableResponse();
 
     let created;
     try {
       created = await createEnquiry(payload, {
-        idempotencyKey: idempotencyKey || undefined,
-        fingerprintSecret: fingerprintSecret || undefined,
+        idempotencyKey,
+        fingerprintSecret,
       });
     } catch (err) {
       // Idempotency conflict: same key, different payload → 409.
       if (err.code === "IDEMPOTENCY_CONFLICT") {
         return NextResponse.json(
-          { error: "This enquiry was already submitted with different details." },
+          { error: "An enquiry from this form was saved with different details. Submit again if you want to send a separate enquiry." },
           { status: 409 },
         );
       }
@@ -206,11 +217,13 @@ export async function POST(request) {
           { error: "A similar enquiry was recently submitted. Please wait before sending again." },
           {
             status: 429,
-            headers: { "Retry-After": "600" },
+            headers: { "Retry-After": String(err.retryAfterSeconds) },
           },
         );
       }
-      // Database or other unexpected error → 500, no internal details leaked.
+      if (err.code === "ENQUIRY_PROTECTION_UNAVAILABLE" || err.code === "DB_CONFIG_MISSING") {
+        return unavailableResponse();
+      }
       return NextResponse.json(
         { error: "We couldn't save your enquiry. Please try again." },
         { status: 500 },
@@ -219,7 +232,7 @@ export async function POST(request) {
 
     const GOOGLE_SCRIPT_URL = process.env.GOOGLE_APPS_SCRIPT_URL || "";
     let data = "";
-    if (GOOGLE_SCRIPT_URL) {
+    if (GOOGLE_SCRIPT_URL && !created.replayed) {
       try {
         const response = await fetch(GOOGLE_SCRIPT_URL, {
           method: "POST",
