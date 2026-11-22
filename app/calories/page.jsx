@@ -6,7 +6,17 @@ import InputField from "@/components/atoms/InputField";
 import UnitToggle from "@/components/pages/bmi/UnitToggle";
 import ShareButton from "@/components/atoms/ShareButton";
 import ResultCard from "@/components/atoms/ResultCard";
+import ResultExplanation from "@/components/atoms/ResultExplanation";
+import HealthDisclaimer from "@/components/atoms/HealthDisclaimer";
 import { useShareableImage } from "@/hooks/useShareableImage";
+import CalculatorNextStep from "@/components/atoms/CalculatorNextStep";
+import {
+  calculateBMR,
+  calculateTDEE,
+  calculateTargetCalories,
+  ACTIVITY_LEVELS,
+  CALORIE_GOALS,
+} from "@/lib/calculators";
 
 // Utility functions
 const round = (value, digits = 0) => {
@@ -25,62 +35,6 @@ const conversions = {
     return { ft, in: inches };
   },
   ftInToCm: (ft, inches) => round((ft * 12 + inches) * 2.54, 1),
-};
-
-// Activity levels for calorie calculation
-const ACTIVITY_LEVELS = [
-  {
-    value: 1.2,
-    label: "Sedentary",
-    description: "Little to no exercise",
-  },
-  {
-    value: 1.375,
-    label: "Lightly Active",
-    description: "Light exercise 1-3 days/week",
-  },
-  {
-    value: 1.55,
-    label: "Moderately Active",
-    description: "Moderate exercise 3-5 days/week",
-  },
-  {
-    value: 1.725,
-    label: "Very Active",
-    description: "Hard exercise 6-7 days/week",
-  },
-  {
-    value: 1.9,
-    label: "Extremely Active",
-    description: "Very hard exercise, physical job",
-  },
-];
-
-// Goals for calorie adjustment
-const CALORIE_GOALS = [
-  { value: -500, label: "Lose Weight", description: "1 lb/week loss" },
-  { value: -250, label: "Mild Weight Loss", description: "0.5 lb/week loss" },
-  { value: 0, label: "Maintain Weight", description: "Current weight" },
-  { value: 250, label: "Mild Weight Gain", description: "0.5 lb/week gain" },
-  { value: 500, label: "Gain Weight", description: "1 lb/week gain" },
-];
-
-// Calorie calculation utilities
-const calorieUtils = {
-  calculateBMR: (weight, height, age, gender) => {
-    // Mifflin-St Jeor Equation
-    if (gender === "male") {
-      return 10 * weight + 6.25 * height - 5 * age + 5;
-    } else {
-      return 10 * weight + 6.25 * height - 5 * age - 161;
-    }
-  },
-  calculateTDEE: (bmr, activityLevel) => {
-    return bmr * activityLevel;
-  },
-  adjustForGoal: (tdee, goalAdjustment) => {
-    return tdee + goalAdjustment;
-  },
 };
 
 export default function CalorieCalculator() {
@@ -125,16 +79,16 @@ export default function CalorieCalculator() {
     }
   };
 
-  // Calculate calories
+  // Calculate calories using verified helpers
   const { bmr, tdee, targetCalories } = useMemo(() => {
-    const bmr = calorieUtils.calculateBMR(weight.kg, height.cm, age, gender);
-    const tdee = calorieUtils.calculateTDEE(bmr, activityLevel);
-    const targetCalories = calorieUtils.adjustForGoal(tdee, goal);
+    const bmr = calculateBMR(weight.kg, height.cm, age, gender);
+    const tdee = calculateTDEE(bmr, activityLevel);
+    const targetCalories = calculateTargetCalories(tdee, goal);
 
     return {
-      bmr: round(bmr),
-      tdee: round(tdee),
-      targetCalories: round(targetCalories),
+      bmr: bmr ? round(bmr) : 0,
+      tdee: tdee ? round(tdee) : 0,
+      targetCalories: targetCalories ? round(targetCalories) : 0,
     };
   }, [weight.kg, height.cm, age, gender, activityLevel, goal]);
 
@@ -142,6 +96,11 @@ export default function CalorieCalculator() {
     (level) => level.value === activityLevel,
   );
   const selectedGoal = CALORIE_GOALS.find((g) => g.value === goal);
+
+  // Sex coefficient explanation for Mifflin-St Jeor
+  const sexCoefficient = gender === "male" ? "+5" : "−161";
+  const sexCoefficientLabel =
+    gender === "male" ? "men" : "women";
 
   // Prepare share data for calorie results
   const shareResult = useMemo(() => {
@@ -184,6 +143,9 @@ export default function CalorieCalculator() {
           <p className="mt-3 text-gray-600 dark:text-gray-300">
             Calculate your daily calorie needs based on your goals and activity
             level
+          </p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Example values shown — enter your own data for personalized results
           </p>
         </motion.div>
 
@@ -298,6 +260,21 @@ export default function CalorieCalculator() {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Equation explanation */}
+            <div className="mt-6">
+              <div className="rounded-lg bg-blue-50 p-4 text-sm text-blue-900 ring-1 ring-inset ring-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:ring-blue-900/40">
+                <p className="font-medium mb-1">Mifflin–St Jeor Equation</p>
+                <p className="text-sm">
+                  BMR = 10 × weight + 6.25 × height − 5 × age + sex coefficient.
+                  The sex coefficient is{" "}
+                  <span className="font-semibold">{sexCoefficient}</span>{" "}
+                  for {sexCoefficientLabel}. This is a biological variable in
+                  the published equation, not a statement about gender identity.
+                  Results are population-level estimates.
+                </p>
+              </div>
             </div>
 
             {/* Activity & Goals */}
@@ -431,6 +408,46 @@ export default function CalorieCalculator() {
           </motion.div>
         </div>
 
+        {/* Educational explanation */}
+        <div className="mt-6">
+          <ResultExplanation
+            whatItMeans={
+              <>
+                Your{" "}
+                <span className="font-semibold">
+                  Basal Metabolic Rate (BMR)
+                </span>{" "}
+                of {bmr} calories/day is the energy your body needs at rest
+                for basic functions. Your{" "}
+                <span className="font-semibold">
+                  maintenance calories (TDEE)
+                </span>{" "}
+                of {tdee} calories/day includes your daily activity. Your{" "}
+                <span className="font-semibold">target</span> of{" "}
+                {targetCalories} calories/day is adjusted for your goal of{" "}
+                {selectedGoal?.label.toLowerCase()}.
+              </>
+            }
+            whyItMatters={
+              <>
+                Eating at a moderate deficit below your maintenance calories
+                can lead to gradual weight loss, while eating above them
+                supports weight gain. Matching your intake to your goal is
+                key to achieving lasting results.
+              </>
+            }
+            limitations={
+              <>
+                These calculations are estimates based on general formulas.
+                Actual energy needs vary between individuals based on
+                metabolism, muscle mass, genetics, medical conditions, and
+                other factors. Use these numbers as a guide, not a fixed rule,
+                and adjust based on your progress and how you feel.
+              </>
+            }
+          />
+        </div>
+
         {/* Macronutrient Breakdown */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -439,7 +456,7 @@ export default function CalorieCalculator() {
           className="mt-8 rounded-xl bg-white p-6 shadow-lg ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700"
         >
           <h3 className="mb-6 text-center text-lg font-semibold">
-            Recommended Macronutrient Breakdown
+            Illustrative Macronutrient Distribution
           </h3>
           <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {[
@@ -519,6 +536,39 @@ export default function CalorieCalculator() {
           </div>
         </motion.div>
 
+        {/* Health Disclaimer */}
+        <div className="mt-6">
+          <HealthDisclaimer
+            universalDisclaimer={
+              <>
+                The results provided are estimates based on general population
+                formulas and the information you have entered. They are
+                intended for general educational and fitness guidance, not as
+                a substitute for professional medical advice. Individual
+                requirements may vary depending on age, body composition,
+                activity level, lifestyle, health status and other personal
+                factors. These values should be treated as a starting
+                reference, not fixed targets. Health Notice: If you have an
+                existing medical condition, metabolic disorder, are taking
+                medication, are pregnant, or have specific dietary or exercise
+                restrictions, consult a qualified healthcare professional
+                before making changes to your diet, hydration or exercise
+                routine. Remember: Your fitness journey is individual. Use
+                these results as a starting point and adjust your approach
+                based on your body&apos;s response and professional guidance.
+              </>
+            }
+            specificCaution={
+              <>
+                Calorie estimates are not personalized medical or dietary
+                prescriptions. Individual energy requirements may differ,
+                particularly during pregnancy, breastfeeding, adolescence or
+                when managing a medical or nutritional condition.
+              </>
+            }
+          />
+        </div>
+
         {/* Enhanced Interactive Result Card Preview */}
         {shareResult && (
           <div className="mt-8">
@@ -550,9 +600,35 @@ export default function CalorieCalculator() {
             </div>
           </div>
         )}
-      </div>
 
-      {/* Hidden Shareable Card for Image Generation */}
+        </div>
+
+        {/* Calculator Next Step */}
+        <CalculatorNextStep
+          heading="What's Next"
+          description={
+            <>
+              Estimated energy expenditure is only one aspect of fitness
+              planning. Explore your broader fitness picture or coaching
+              options.
+            </>
+          }
+          source="calculator-calories"
+          calculatorId="calories"
+          showEnquiry={true}
+          primaryCta={{
+            label: "Explore Your Fitness & Health Snapshot",
+            href: "/transformation",
+          }}
+          secondaryLinks={[
+            {
+              label: "Explore Strength Coaching",
+              href: "/services/category/strength-fitness-performance",
+            },
+          ]}
+        />
+
+        {/* Hidden Shareable Card for Image Generation */}
       {shareResult && (
         <div className="fixed -top-[9999px] -left-[9999px] pointer-events-none">
           <ResultCard

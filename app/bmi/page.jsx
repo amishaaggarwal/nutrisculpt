@@ -7,7 +7,15 @@ import BMICategories from "@/components/pages/bmi/BMICategories";
 import UnitToggle from "@/components/pages/bmi/UnitToggle";
 import ShareButton from "@/components/atoms/ShareButton";
 import ResultCard from "@/components/atoms/ResultCard";
+import ResultExplanation from "@/components/atoms/ResultExplanation";
+import HealthDisclaimer from "@/components/atoms/HealthDisclaimer";
 import { useShareableImage } from "@/hooks/useShareableImage";
+import CalculatorNextStep from "@/components/atoms/CalculatorNextStep";
+import {
+  calculateBMI,
+  classifyBMI,
+  bmiHealthyRange,
+} from "@/lib/calculators";
 
 // Utility functions
 const round = (value, digits = 1) => {
@@ -28,36 +36,9 @@ const conversions = {
   ftInToCm: (ft, inches) => round((ft * 12 + inches) * 2.54, 1),
 };
 
-// BMI calculation and classification
-const bmiUtils = {
-  calculate: (weightKg, heightCm) => {
-    const heightM = heightCm / 100;
-    return heightM > 0 ? weightKg / (heightM * heightM) : 0;
-  },
-  classify: (bmi) => {
-    if (!isFinite(bmi) || bmi <= 0)
-      return { label: "—", color: "text-gray-500" };
-    if (bmi < 18.5) return { label: "Underweight", color: "text-amber-500" };
-    if (bmi < 25) return { label: "Normal", color: "text-emerald-600" };
-    if (bmi < 30) return { label: "Overweight", color: "text-orange-600" };
-    return { label: "Obese", color: "text-rose-600" };
-  },
-  getHealthyRange: (heightCm, isMetric) => {
-    const heightM = heightCm / 100;
-    if (heightM <= 0) return "—";
-
-    const minKg = 18.5 * heightM * heightM;
-    const maxKg = 24.9 * heightM * heightM;
-
-    if (isMetric) {
-      return `${round(minKg, 1)}kg - ${round(maxKg, 1)}kg`;
-    }
-    return `${conversions.kgToLb(minKg)}lb - ${conversions.kgToLb(maxKg)}lb`;
-  },
-};
-
 export default function BmiCalculator() {
   const [unitSystem, setUnitSystem] = useState("metric");
+  const [age, setAge] = useState(25);
 
   // Store both metric and imperial values
   const [weight, setWeight] = useState({ kg: 70, lb: 154.3 });
@@ -89,16 +70,19 @@ export default function BmiCalculator() {
     }
   };
 
-  // Calculate BMI and classification
+  // Calculate BMI and classification using verified helpers
   const bmi = useMemo(
-    () => bmiUtils.calculate(weight.kg, height.cm),
+    () => calculateBMI(weight.kg, height.cm),
     [weight.kg, height.cm]
   );
-  const { label, color } = bmiUtils.classify(bmi);
-  const healthyWeightRange = bmiUtils.getHealthyRange(
-    height.cm,
-    unitSystem === "metric"
+  const classification = useMemo(
+    () => classifyBMI(bmi),
+    [bmi]
   );
+  const { label, color, obesityClass } = classification;
+  const healthyRange = bmiHealthyRange(height.cm);
+
+  const isAdult = Number.isFinite(age) && age >= 18;
 
   // Prepare share data for BMI results
   const shareResult = useMemo(() => {
@@ -107,9 +91,11 @@ export default function BmiCalculator() {
     return validateResultForPrivacy({
       value: round(bmi, 1),
       category: label,
-      healthyRange: healthyWeightRange
+      healthyRange: healthyRange
+        ? `${healthyRange.min[unitSystem === 'metric' ? 'kg' : 'lb']} - ${healthyRange.max[unitSystem === 'metric' ? 'kg' : 'lb']} ${unitSystem === 'metric' ? 'kg' : 'lbs'}`
+       : "—",
     }, ['weight', 'height']); // Exclude sensitive input data
-  }, [bmi, label, healthyWeightRange, validateResultForPrivacy]);
+  }, [bmi, label, healthyRange, unitSystem, validateResultForPrivacy]);
 
   const shareData = useMemo(() => {
     if (!shareResult) return null;
@@ -127,9 +113,12 @@ export default function BmiCalculator() {
         <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
           Body Mass Index Calculator
         </h2>
-        <p className="mt-3 text-gray-600 dark:text-gray-300">
-          Calculate your BMI and get instant health classification
-        </p>
+          <p className="mt-3 text-gray-600 dark:text-gray-300">
+            Calculate your BMI and get instant health classification
+          </p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Example values shown — enter your own data for personalized results
+          </p>
       </div>
 
       {/* Input Form */}
@@ -182,14 +171,28 @@ export default function BmiCalculator() {
               </div>
             </>
           )}
+
+          {/* Age */}
+          <InputField
+            label="Age"
+            value={age}
+            onChange={setAge}
+            type="number"
+            placeholder="25"
+            min="1"
+            max="120"
+            unit="years"
+          />
         </div>
 
         <div className="mt-6">
           <div className="rounded-lg bg-blue-50 p-4 text-sm text-blue-900 ring-1 ring-inset ring-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:ring-blue-900/40">
             <p>
-              BMI is a screening tool and does not diagnose body fatness or
-              health. It may not be accurate for athletes, elderly, or pregnant
-              women. Consult a healthcare professional for personalized advice.
+              BMI is a screening tool for adults (age 18 and older) and does
+              not diagnose body fatness or health. It may not be accurate for
+              athletes, elderly, or pregnant women. BMI categories for children
+              and teenagers are age- and sex-specific. Consult a healthcare
+              professional for personalized advice.
             </p>
           </div>
         </div>
@@ -201,34 +204,107 @@ export default function BmiCalculator() {
         <div className="rounded-xl bg-white p-4 sm:p-6 shadow-lg ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700">
           <div className="text-center">
             <h3 className="mb-4 text-lg font-semibold">Your BMI Result</h3>
-            <div className="mb-4">
-              <p className="text-5xl font-extrabold tracking-tight">
-                {isFinite(bmi) && bmi > 0 ? round(bmi, 1) : "—"}
-              </p>
-              <p className={`mt-2 text-lg font-semibold ${color}`}>{label}</p>
-            </div>
+            {isAdult ? (
+              <>
+                <div className="mb-4">
+                  <p className="text-5xl font-extrabold tracking-tight">
+                    {isFinite(bmi) && bmi > 0 ? round(bmi, 1) : "—"}
+                  </p>
+                  <p className={`mt-2 text-lg font-semibold ${color}`}>
+                    {label}
+                    {obesityClass && (
+                      <span className="text-xs font-normal ml-1 opacity-80">
+                        ({obesityClass.label})
+                      </span>
+                    )}
+                  </p>
+                </div>
 
-            <div className="mb-6">
-              <Gauge value={bmi} />
-            </div>
+                <div className="mb-6">
+                  <Gauge value={bmi} />
+                </div>
 
-            <div className="text-left">
-              <h4 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                Healthy weight range for your height:
-              </h4>
-              <p className="text-lg font-semibold text-emerald-600">
-                {healthyWeightRange}
-              </p>
-            </div>
+                <div className="text-left">
+                  <h4 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Healthy weight range for your height:
+                  </h4>
+                  <p className="text-lg font-semibold text-emerald-600">
+                    {healthyRange
+                      ? `${healthyRange.min[unitSystem === "metric" ? "kg" : "lb"]} - ${healthyRange.max[unitSystem === "metric" ? "kg" : "lb"]} ${unitSystem === "metric" ? "kg" : "lbs"}`
+                      : "—"}
+                  </p>
+                </div>
 
-            {/* Share Button */}
-            {shareResult && shareData && (
-              <div className="mt-6 text-center">
-                <ShareButton
-                  onGenerateImage={handleGenerateImage}
-                  shareData={shareData}
-                  className="w-full"
-                />
+                {/* Educational explanation */}
+                <div className="mt-4">
+                  <ResultExplanation
+                    whatItMeans={
+                      <>
+                        Your BMI of{" "}
+                        <span className="font-semibold">
+                          {isFinite(bmi) && bmi > 0 ? round(bmi, 1) : "—"}
+                        </span>{" "}
+                        places you in the{" "}
+                        <span className="font-semibold">{label}</span>{" "}
+                        {obesityClass && (
+                          <>
+                            <span className="text-xs font-normal ml-1 opacity-80">
+                              ({obesityClass.label})
+                            </span>
+                          </>
+                        )}
+                        category. BMI is a simple, widely used screening tool
+                        that relates body weight to height.
+                      </>
+                    }
+                    whyItMatters={
+                      <>
+                        Maintaining a BMI within the{" "}
+                        <span className="font-semibold">
+                          18.5–24.9
+                        </span>{" "}
+                        range is associated with lower risk of chronic diseases
+                        such as heart disease, type 2 diabetes, and certain
+                        cancers. Your healthy weight range for your height is{" "}
+                        <span className="font-semibold">
+                          {healthyRange
+                            ? `${healthyRange.min[unitSystem === "metric" ? "kg" : "lb"]} - ${healthyRange.max[unitSystem === "metric" ? "kg" : "lb"]} ${unitSystem === "metric" ? "kg" : "lbs"}`
+                            : "—"}
+                        </span>.
+                      </>
+                    }
+                    limitations={
+                      <>
+                        BMI is a screening tool and does not directly measure
+                        body fat or distinguish between muscle and fat. It may
+                        not be accurate for athletes, older adults, pregnant
+                        women, or people with high muscle mass. Use it as one
+                        piece of information, not a diagnosis. BMI categories
+                        apply to adults only; children and teenagers use
+                        age- and sex-specific percentile charts.
+                      </>
+                    }
+                  />
+                </div>
+
+                {/* Share Button */}
+                {shareResult && shareData && (
+                  <div className="mt-6 text-center">
+                    <ShareButton
+                      onGenerateImage={handleGenerateImage}
+                      shareData={shareData}
+                      className="w-full"
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-600 dark:text-gray-300">
+                  BMI categories are intended for adults age 18 and older.
+                  Please enter an age of 18 or above to see your
+                  classification.
+                </p>
               </div>
             )}
           </div>
@@ -239,6 +315,39 @@ export default function BmiCalculator() {
           <h3 className="mb-4 text-lg font-semibold">BMI Categories</h3>
           <BMICategories />
         </div>
+      </div>
+
+      {/* Health Disclaimer */}
+      <div className="mt-8">
+        <HealthDisclaimer
+          universalDisclaimer={
+            <>
+              The results provided are estimates based on general population
+              formulas and the information you have entered. They are
+              intended for general educational and fitness guidance, not as a
+              substitute for professional medical advice. Individual
+              requirements may vary depending on age, body composition,
+              activity level, lifestyle, health status and other personal
+              factors. These values should be treated as a starting
+              reference, not fixed targets. Health Notice: If you have an
+              existing medical condition, metabolic disorder, are taking
+              medication, are pregnant, or have specific dietary or exercise
+              restrictions, consult a qualified healthcare professional
+              before making changes to your diet, hydration or exercise
+              routine. Remember: Your fitness journey is individual. Use
+              these results as a starting point and adjust your approach
+              based on your body&apos;s response and professional guidance.
+            </>
+          }
+          specificCaution={
+            <>
+              BMI is a general screening measure and does not directly
+              measure body fat or determine an individual&apos;s health status.
+              Athletes, highly muscular individuals and people with different
+              body compositions may need additional assessment.
+            </>
+          }
+        />
       </div>
 
       {/* Enhanced Interactive Result Card Preview */}
@@ -265,6 +374,31 @@ export default function BmiCalculator() {
           </div>
         </div>
       )}
+
+      {/* Calculator Next Step */}
+      <CalculatorNextStep
+        heading="What's Next"
+        description={
+          <>
+            BMI is one weight-for-height screening measure. Physical activity,
+            strength and other individual factors also matter. Explore your
+            broader fitness picture or coaching options.
+          </>
+        }
+        source="calculator-bmi"
+        calculatorId="bmi"
+        showEnquiry={true}
+        primaryCta={{
+          label: "Explore Your Fitness & Health Snapshot",
+          href: "/transformation",
+        }}
+        secondaryLinks={[
+          {
+            label: "Explore Strength Coaching",
+            href: "/services/category/strength-fitness-performance",
+          },
+        ]}
+      />
 
       {/* Hidden Shareable Card for Image Generation */}
       {shareResult && (

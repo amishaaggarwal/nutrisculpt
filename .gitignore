@@ -13,6 +13,11 @@
 # testing
 /coverage
 
+# playwright
+/test-results
+/playwright-report
+/tests/screenshots
+
 # next.js
 /.next/
 /out/
@@ -39,3 +44,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local enquiry data (private)
+/data/enquiries.json
+

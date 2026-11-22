@@ -6,13 +6,15 @@ import { motion } from "framer-motion";
 import InputField from "@/components/atoms/InputField";
 import ShareButton from "@/components/atoms/ShareButton";
 import ResultCard from "@/components/atoms/ResultCard";
+import ResultExplanation from "@/components/atoms/ResultExplanation";
+import HealthDisclaimer from "@/components/atoms/HealthDisclaimer";
 import { useShareableImage } from "@/hooks/useShareableImage";
-
-// Utility functions
-const round = (value, digits = 0) => {
-  const p = Math.pow(10, digits);
-  return Math.round(value * p) / p;
-};
+import CalculatorNextStep from "@/components/atoms/CalculatorNextStep";
+import {
+  MAX_HR_METHODS,
+  computeHrZones,
+  validateHeartRateInputs,
+} from "@/lib/calculators.mjs";
 
 // Heart rate zone definitions
 const HR_ZONES = [
@@ -23,7 +25,7 @@ const HR_ZONES = [
     color: "text-green-600 dark:text-green-400",
     bgColor: "bg-green-100 dark:bg-green-700/20",
     description: "Very light intensity, active recovery",
-    benefits: "Recovery, fat burning, warm-up",
+    benefits: "Recovery, warm-up, active recovery",
     activities: ["Walking", "Easy cycling", "Gentle yoga"],
   },
   {
@@ -33,7 +35,7 @@ const HR_ZONES = [
     color: "text-blue-600 dark:text-blue-400",
     bgColor: "bg-blue-100 dark:bg-blue-700/20",
     description: "Light intensity, aerobic development",
-    benefits: "Builds aerobic capacity, fat burning",
+    benefits: "Builds aerobic base, general endurance",
     activities: ["Jogging", "Easy swimming", "Light cycling"],
   },
   {
@@ -58,12 +60,12 @@ const HR_ZONES = [
   },
   {
     zone: 5,
-    name: "VO2 Max",
+    name: "Maximal Effort",
     percentage: { min: 90, max: 100 },
     color: "text-red-600 dark:text-red-400",
     bgColor: "bg-red-100 dark:bg-red-700/20",
-    description: "Maximum intensity, neuromuscular power",
-    benefits: "Improves VO2 max, anaerobic capacity",
+    description: "Near-maximal effort, neuromuscular power",
+    benefits: "Anaerobic capacity, neuromuscular power",
     activities: ["Sprint intervals", "Hill sprints", "HIIT"],
   },
 ];
@@ -73,45 +75,26 @@ const TRAINING_GOALS = [
   {
     goal: "Weight Loss",
     primaryZones: [1, 2],
-    description: "Focus on fat-burning zones with longer duration",
-    recommendation: "60-70% of training time in zones 1-2",
+    description: "Regular moderate-intensity activity alongside overall energy balance",
+    recommendation: "Most sessions at a moderate intensity. Weight change depends mainly on total energy balance, not on a specific heart-rate zone.",
   },
   {
     goal: "General Fitness",
     primaryZones: [2, 3],
     description: "Build overall cardiovascular health",
-    recommendation: "Mix of zones 2-3 with some zone 1 recovery",
+    recommendation: "Mix easy and moderate sessions, with occasional recovery work.",
   },
   {
     goal: "Endurance",
     primaryZones: [2, 3, 4],
     description: "Build aerobic capacity and endurance",
-    recommendation: "80% easy (zones 1-2), 20% moderate-hard (zones 3-4)",
+    recommendation: "Mostly easy volume with some moderate-to-hard sessions.",
   },
   {
     goal: "Performance",
     primaryZones: [3, 4, 5],
     description: "Improve speed and power",
-    recommendation: "Include all zones with emphasis on 4-5",
-  },
-];
-
-// Age prediction methods
-const AGE_PREDICTION_METHODS = [
-  {
-    name: "Standard (220 - Age)",
-    formula: (age) => 220 - age,
-    description: "Most common formula",
-  },
-  {
-    name: "Tanaka (208 - 0.7 × Age)",
-    formula: (age) => 208 - (0.7 * age),
-    description: "More accurate for older adults",
-  },
-  {
-    name: "Gulati Women (206 - 0.88 × Age)",
-    formula: (age) => 206 - (0.88 * age),
-    description: "Specific formula for women",
+    recommendation: "Include higher-intensity work as tolerated and recovered.",
   },
 ];
 
@@ -120,69 +103,68 @@ export default function HeartRateZoneCalculator() {
   const [restingHR, setRestingHR] = useState(60);
   const [maxHR, setMaxHR] = useState(195);
   const [useCustomMaxHR, setUseCustomMaxHR] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState(0);
+  const [methodIndex, setMethodIndex] = useState(0);
   const [selectedGoal, setSelectedGoal] = useState("General Fitness");
   const [gender, setGender] = useState("male");
 
   // Share functionality
   const { shareableCardRef, generateImage, generateShareData, validateResultForPrivacy } = useShareableImage('heart-rate');
 
-  // Calculate predicted max HR
-  const predictedMaxHR = useMemo(() => {
-    const method = AGE_PREDICTION_METHODS[selectedMethod];
-    if (!method) return 195;
-    
-    // Use gender-specific formula if Gulati is selected and user is female
-    if (method.name.includes("Gulati") && gender === "female") {
-      return round(method.formula(age));
-    } else if (method.name.includes("Gulati") && gender === "male") {
-      // Use Tanaka for males when Gulati is selected
-      return round(208 - (0.7 * age));
+  const method = MAX_HR_METHODS[methodIndex] || MAX_HR_METHODS[0];
+
+  // Keep the selected method valid for the chosen gender.
+  const handleGenderChange = (nextGender) => {
+    setGender(nextGender);
+    const current = MAX_HR_METHODS[methodIndex] || MAX_HR_METHODS[0];
+    if (!current.genders.includes(nextGender)) {
+      setMethodIndex(0);
     }
-    
-    return round(method.formula(age));
-  }, [age, selectedMethod, gender]);
+  };
+
+  const validation = useMemo(
+    () =>
+      validateHeartRateInputs({
+        age,
+        restingHR,
+        maxHR,
+        useCustomMaxHR,
+        methodId: method.id,
+        sex: gender,
+      }),
+    [age, restingHR, maxHR, useCustomMaxHR, method.id, gender]
+  );
 
   // Use either custom or predicted max HR
-  const effectiveMaxHR = useCustomMaxHR ? maxHR : predictedMaxHR;
+  const effectiveMaxHR = validation.predicted;
 
   // Calculate heart rate zones using both percentage of max HR and Karvonen method
   const hrZones = useMemo(() => {
-    return HR_ZONES.map(zone => {
-      // Percentage of Max HR method
-      const maxHRMin = round((zone.percentage.min / 100) * effectiveMaxHR);
-      const maxHRMax = round((zone.percentage.max / 100) * effectiveMaxHR);
-      
-      // Karvonen method (Heart Rate Reserve)
-      const hrReserve = effectiveMaxHR - restingHR;
-      const karvonenMin = round(restingHR + (zone.percentage.min / 100) * hrReserve);
-      const karvonenMax = round(restingHR + (zone.percentage.max / 100) * hrReserve);
-      
-      return {
-        ...zone,
-        maxHR: { min: maxHRMin, max: maxHRMax },
-        karvonen: { min: karvonenMin, max: karvonenMax },
-      };
+    if (!validation.valid || !Number.isFinite(effectiveMaxHR)) return null;
+    return computeHrZones({
+      maxHR: effectiveMaxHR,
+      restingHR,
+      zones: HR_ZONES,
     });
-  }, [effectiveMaxHR, restingHR]);
+  }, [validation.valid, effectiveMaxHR, restingHR]);
 
   // Get recommendation for selected goal
   const goalRecommendation = TRAINING_GOALS.find(goal => goal.goal === selectedGoal);
 
-  // Prepare share data for heart rate zones
+  // Prepare share data for heart rate zones.
+  // Allowlist: only fields that are actually rendered on the card or used in
+  // the share message. Resting heart rate is used for the Karvonen
+  // calculation only and is deliberately never placed on the shareable card.
   const shareResult = useMemo(() => {
     if (!hrZones || hrZones.length === 0 || !goalRecommendation) return null;
-    
-    const recommendedZones = hrZones.filter(zone => goalRecommendation.primaryZones.includes(zone.zone));
-    const zoneRanges = recommendedZones.map(zone => `Zone ${zone.zone}: ${zone.maxHR.min}-${zone.maxHR.max} bpm`).join(', ');
-    
+
     return validateResultForPrivacy({
       goal: selectedGoal,
-      zones: zoneRanges,
       maxHR: effectiveMaxHR,
-      restingHR: restingHR
+      maxHRLabel: useCustomMaxHR
+        ? "Entered maximum heart rate"
+        : "Estimated maximum heart rate"
     }, ['age', 'gender']); // Exclude sensitive input data
-  }, [hrZones, goalRecommendation, selectedGoal, effectiveMaxHR, restingHR, validateResultForPrivacy]);
+  }, [hrZones, goalRecommendation, selectedGoal, effectiveMaxHR, useCustomMaxHR, validateResultForPrivacy]);
 
   const shareData = useMemo(() => {
     if (!shareResult) return null;
@@ -235,7 +217,7 @@ export default function HeartRateZoneCalculator() {
                       name="gender"
                       value={g}
                       checked={gender === g}
-                      onChange={(e) => setGender(e.target.value)}
+                      onChange={(e) => handleGenderChange(e.target.value)}
                       className="mr-2 h-4 w-4 text-blue-600"
                     />
                     <span className="capitalize text-sm font-medium">
@@ -256,6 +238,11 @@ export default function HeartRateZoneCalculator() {
               min="1"
               max="120"
             />
+            {validation.errors.age && (
+              <p className="text-xs text-red-600 dark:text-red-400">
+                {validation.errors.age}
+              </p>
+            )}
 
             {/* Resting Heart Rate */}
             <InputField
@@ -267,6 +254,16 @@ export default function HeartRateZoneCalculator() {
               min="30"
               max="120"
             />
+            {validation.errors.restingHR && (
+              <p className="text-xs text-red-600 dark:text-red-400">
+                {validation.errors.restingHR}
+              </p>
+            )}
+            {validation.errors.reserve && (
+              <p className="text-xs text-red-600 dark:text-red-400">
+                {validation.errors.reserve}
+              </p>
+            )}
             <p className="text-xs text-gray-500 dark:text-gray-400">
               Measure first thing in the morning before getting out of bed
             </p>
@@ -282,21 +279,38 @@ export default function HeartRateZoneCalculator() {
                 Calculation Method
               </label>
               <select
-                value={selectedMethod}
-                onChange={(e) => setSelectedMethod(parseInt(e.target.value))}
+                value={methodIndex}
+                onChange={(e) => setMethodIndex(parseInt(e.target.value))}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               >
-                {AGE_PREDICTION_METHODS.map((method, index) => (
-                  <option key={index} value={index}>
-                    {method.name} - {method.description}
+                {MAX_HR_METHODS.map((m, index) => (
+                  <option
+                    key={m.id}
+                    value={index}
+                    disabled={!m.genders.includes(gender)}
+                  >
+                    {m.name} - {m.note}
                   </option>
                 ))}
               </select>
+              {validation.errors.method && (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                  {validation.errors.method}
+                </p>
+              )}
             </div>
 
             <div className="rounded-lg bg-blue-50 p-4 text-center dark:bg-blue-950/40">
               <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
-                Predicted Max HR: {predictedMaxHR} bpm
+                {useCustomMaxHR ? "Using your measured max HR" : "Predicted Max HR"}:{" "}
+                {validation.valid && Number.isFinite(effectiveMaxHR)
+                  ? `${effectiveMaxHR} bpm`
+                  : "—"}
+              </p>
+              <p className="mt-1 text-xs text-blue-800 dark:text-blue-300">
+                {useCustomMaxHR
+                  ? "Your entered value is used directly."
+                  : `${method.name}. ${method.note}`}
               </p>
             </div>
 
@@ -323,6 +337,11 @@ export default function HeartRateZoneCalculator() {
                 min="120"
                 max="250"
               />
+            )}
+            {validation.errors.maxHR && (
+              <p className="text-xs text-red-600 dark:text-red-400">
+                {validation.errors.maxHR}
+              </p>
             )}
 
             {/* Training Goal */}
@@ -365,9 +384,27 @@ export default function HeartRateZoneCalculator() {
         <h3 className="mb-6 text-center text-lg font-semibold">
           Your Heart Rate Training Zones
         </h3>
-        
-        <div className="space-y-4">
-          {hrZones.map((zone) => {
+
+        {!hrZones ? (
+          <div className="rounded-lg bg-red-50 p-4 text-sm text-red-900 ring-1 ring-inset ring-red-200 dark:bg-red-950/40 dark:text-red-200 dark:ring-red-900/40">
+            <p className="font-semibold">Check your inputs</p>
+            <ul className="mt-2 list-disc pl-5">
+              {Object.values(validation.errors).map((error) => (
+                <li key={error}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <>
+            <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+              Two models are shown. <strong>% of Max HR</strong> applies the percentage directly to
+              estimated maximum heart rate. <strong>Karvonen (Heart Rate Reserve)</strong> applies
+              the same percentage to the difference between maximum and resting heart rate, so its
+              values sit higher for the same zone. They are alternative estimates, not equivalent
+              prescriptions.
+            </p>
+            <div className="space-y-4">
+              {hrZones.map((zone) => {
             const isRecommended = goalRecommendation?.primaryZones.includes(zone.zone);
             
             return (
@@ -428,8 +465,89 @@ export default function HeartRateZoneCalculator() {
               </div>
             );
           })}
+            </div>
+          </>
+        )}
+      </motion.div>
+
+      {/* Talk Test */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.5 }}
+        className="mt-8 rounded-xl bg-white p-6 shadow-lg ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700"
+      >
+        <h3 className="mb-4 text-center text-lg font-semibold">Talk Test</h3>
+        <p className="mb-4 text-center text-sm text-gray-600 dark:text-gray-400">
+          A practical way to gauge intensity without a monitor. It is a general cue, not a
+          replacement for medical evaluation.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
+          <div className="rounded-lg bg-emerald-50 p-4 dark:bg-emerald-950/40">
+            <h4 className="font-semibold text-emerald-700 dark:text-emerald-300">
+              Moderate intensity
+            </h4>
+            <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
+              You can talk comfortably but not sing.
+            </p>
+          </div>
+          <div className="rounded-lg bg-red-50 p-4 dark:bg-red-950/40">
+            <h4 className="font-semibold text-red-700 dark:text-red-300">
+              Vigorous intensity
+            </h4>
+            <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
+              Speaking more than a few words requires pausing for breath.
+            </p>
+          </div>
         </div>
       </motion.div>
+
+      {/* Red flags */}
+      <div className="mt-6 rounded-lg bg-red-50 p-4 text-sm text-red-900 ring-1 ring-inset ring-red-200 dark:bg-red-950/40 dark:text-red-200 dark:ring-red-900/40">
+        <p>
+          <strong>Stop and seek urgent care</strong> for chest pain or pressure, fainting, severe
+          dizziness, or severe or unusual breathlessness. These ranges are not a substitute for
+          clinical assessment.
+        </p>
+      </div>
+
+      {/* Educational explanation */}
+      <div className="mt-6">
+        <ResultExplanation
+          whatItMeans={
+            <>
+              Your estimated maximum heart rate is{" "}
+              <strong>{Number.isFinite(effectiveMaxHR) ? `${effectiveMaxHR} bpm` : "—"}</strong>
+              {useCustomMaxHR
+                ? " (your entered value)"
+                : ` (${method.name})`}
+              . Your heart rate training zones are ranges of heartbeats per minute that
+              correspond to different training intensities. Zone 1 is the lightest and Zone 5 is
+              the most intense. Zones are calculated as percentages of that maximum.
+            </>
+          }
+          whyItMatters={
+            <>
+              Training in different zones produces different fitness benefits. Lower zones support
+              recovery and endurance, while higher zones improve cardiovascular fitness, speed and
+              power. Knowing your zones helps you structure workouts to match your goals. The Talk
+              Test is a practical check: at moderate intensity you can talk but not sing; at
+              vigorous intensity you can only manage a few words before pausing for breath.
+            </>
+          }
+          limitations={
+            <>
+              Maximum heart rate formulas are population estimates with wide individual variation.
+              A measured maximum is more accurate than an age-based prediction. Beta blockers and
+              other heart-rate-altering medications, cardiovascular conditions, pregnancy, and
+              clinician-prescribed exercise limits can make predicted ranges unreliable; in those
+              cases, clinician-guided targets or perceived exertion may be more appropriate.
+              Standard zones do not identify lactate thresholds, VO₂max boundaries, or a
+              fat-burning requirement, and no single zone guarantees fat loss.
+            </>
+          }
+        />
+      </div>
 
       {/* Training Recommendation */}
       {goalRecommendation && (
@@ -501,6 +619,41 @@ export default function HeartRateZoneCalculator() {
         </div>
       </motion.div>
 
+      {/* Health Disclaimer */}
+      <div className="mt-6">
+        <HealthDisclaimer
+          universalDisclaimer={
+            <>
+              The results provided are estimates based on general population
+              formulas and the information you have entered. They are
+              intended for general educational and fitness guidance, not as a
+              substitute for professional medical advice. Individual
+              requirements may vary depending on age, body composition,
+              activity level, lifestyle, health status and other personal
+              factors. These values should be treated as a starting reference,
+              not fixed targets. Health Notice: If you have an existing medical
+              condition, metabolic disorder, are taking medication, are
+              pregnant, or have specific dietary or exercise restrictions,
+              consult a qualified healthcare professional before making
+              changes to your diet, hydration or exercise routine. Remember:
+              Your fitness journey is individual. Use these results as a
+              starting point and adjust your approach based on your body&apos;s
+              response and professional guidance.
+            </>
+          }
+          specificCaution={
+            <>
+              These zones are estimates, not individually measured training thresholds. Beta
+              blockers and other heart-rate-altering medications, cardiovascular conditions, and
+              clinician-prescribed exercise limits can make standard ranges unreliable. Seek
+              medical guidance before starting or changing exercise if you have relevant health
+              concerns, and stop for chest pain, fainting, severe dizziness, or unusual
+              breathlessness.
+            </>
+          }
+        />
+      </div>
+
       {/* Enhanced Interactive Result Card Preview */}
       {shareResult && (
         <div className="mt-8">
@@ -518,7 +671,7 @@ export default function HeartRateZoneCalculator() {
                 type="heart"
                 value={shareResult.maxHR}
                 category={shareResult.goal}
-                subtitle={`Max HR | Resting: ${shareResult.restingHR} bpm`}
+                subtitle={shareResult.maxHRLabel}
                 aspectRatio="square"
               />
             </div>
@@ -534,6 +687,31 @@ export default function HeartRateZoneCalculator() {
         </div>
       )}
 
+      {/* Calculator Next Step */}
+      <CalculatorNextStep
+        heading="What's Next"
+        description={
+          <>
+            Estimated heart-rate ranges can support general exercise-intensity
+            education. Explore performance coaching or your broader fitness
+            picture.
+          </>
+        }
+        source="calculator-heart-rate"
+        calculatorId="heart-rate"
+        showEnquiry={true}
+        primaryCta={{
+          label: "Explore Performance Coaching",
+          href: "/services/category/functional-fitness-life-stages",
+        }}
+        secondaryLinks={[
+          {
+            label: "Explore Your Fitness & Health Snapshot",
+            href: "/transformation",
+          },
+        ]}
+      />
+
       {/* Hidden Shareable Card for Image Generation */}
       {shareResult && (
         <div className="fixed -top-[9999px] -left-[9999px] pointer-events-none">
@@ -542,7 +720,7 @@ export default function HeartRateZoneCalculator() {
             type="heart"
             value={shareResult.maxHR}
             category={shareResult.goal}
-            subtitle={`Max HR | Resting: ${shareResult.restingHR} bpm`}
+            subtitle={shareResult.maxHRLabel}
           />
         </div>
       )}

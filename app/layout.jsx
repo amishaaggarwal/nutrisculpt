@@ -1,7 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { BRAND } from "@/constants";
-import { Analytics } from "@vercel/analytics/next";
+import PrivacyAnalytics from "@/components/atoms/PrivacyAnalytics";
 import SiteLayout from "@/components/layouts/SiteLayout";
 import SEOContent from "@/components/SEOContent";
 import StructuredData from "@/components/StructuredData";
@@ -71,7 +71,7 @@ export default function RootLayout({ children }) {
           {children}
           <SEOContent />
         </SiteLayout>
-        <Analytics />
+        <PrivacyAnalytics />
       </body>
     </html>
   );

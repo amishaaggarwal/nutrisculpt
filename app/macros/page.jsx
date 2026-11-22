@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -7,7 +6,17 @@ import InputField from "@/components/atoms/InputField";
 import UnitToggle from "@/components/pages/bmi/UnitToggle";
 import ShareButton from "@/components/atoms/ShareButton";
 import ResultCard from "@/components/atoms/ResultCard";
+import ResultExplanation from "@/components/atoms/ResultExplanation";
+import HealthDisclaimer from "@/components/atoms/HealthDisclaimer";
 import { useShareableImage } from "@/hooks/useShareableImage";
+import CalculatorNextStep from "@/components/atoms/CalculatorNextStep";
+import {
+  calculateBMR,
+  calculateTDEE,
+  calculateMacros,
+  MACRO_PRESETS,
+  ACTIVITY_LEVELS,
+} from "@/lib/calculators";
 
 // Utility functions
 const round = (value, digits = 0) => {
@@ -26,39 +35,6 @@ const conversions = {
     return { ft, in: inches };
   },
   ftInToCm: (ft, inches) => round((ft * 12 + inches) * 2.54, 1),
-};
-
-// Activity levels for TDEE calculation
-const ACTIVITY_LEVELS = [
-  { value: 1.2, label: "Sedentary", description: "Little to no exercise" },
-  { value: 1.375, label: "Lightly Active", description: "Light exercise 1-3 days/week" },
-  { value: 1.55, label: "Moderately Active", description: "Moderate exercise 3-5 days/week" },
-  { value: 1.725, label: "Very Active", description: "Hard exercise 6-7 days/week" },
-  { value: 1.9, label: "Extremely Active", description: "Very hard exercise, physical job" },
-];
-
-// Macro distribution presets
-const MACRO_PRESETS = [
-  { name: "Balanced", protein: 25, carbs: 45, fat: 30 },
-  { name: "High Protein", protein: 35, carbs: 35, fat: 30 },
-  { name: "Low Carb", protein: 30, carbs: 20, fat: 50 },
-  { name: "Keto", protein: 25, carbs: 5, fat: 70 },
-  { name: "High Carb", protein: 20, carbs: 60, fat: 20 },
-  { name: "Custom", protein: 25, carbs: 45, fat: 30 },
-];
-
-// Calorie calculation utilities
-const calorieUtils = {
-  calculateBMR: (weight, height, age, gender) => {
-    if (gender === "male") {
-      return 10 * weight + 6.25 * height - 5 * age + 5;
-    } else {
-      return 10 * weight + 6.25 * height - 5 * age - 161;
-    }
-  },
-  calculateTDEE: (bmr, activityLevel) => {
-    return bmr * activityLevel;
-  },
 };
 
 export default function MacroCalculator() {
@@ -101,10 +77,10 @@ export default function MacroCalculator() {
     }
   };
 
-  // Calculate TDEE
+  // Calculate TDEE using verified helpers
   const calculatedCalories = useMemo(() => {
-    const bmr = calorieUtils.calculateBMR(weight.kg, height.cm, age, gender);
-    const tdee = calorieUtils.calculateTDEE(bmr, activityLevel);
+    const bmr = calculateBMR(weight.kg, height.cm, age, gender);
+    const tdee = calculateTDEE(bmr, activityLevel);
     return round(tdee);
   }, [weight.kg, height.cm, age, gender, activityLevel]);
 
@@ -116,27 +92,10 @@ export default function MacroCalculator() {
     return MACRO_PRESETS.find(preset => preset.name === selectedPreset) || MACRO_PRESETS[0];
   }, [selectedPreset, customMacros]);
 
-  // Calculate macro breakdown
+  // Calculate macro breakdown using verified helper
   const macroBreakdown = useMemo(() => {
     const totalCalories = useCalculatedCalories ? calculatedCalories : calories;
-    
-    return {
-      protein: {
-        percentage: currentMacros.protein,
-        calories: round(totalCalories * (currentMacros.protein / 100)),
-        grams: round((totalCalories * (currentMacros.protein / 100)) / 4),
-      },
-      carbs: {
-        percentage: currentMacros.carbs,
-        calories: round(totalCalories * (currentMacros.carbs / 100)),
-        grams: round((totalCalories * (currentMacros.carbs / 100)) / 4),
-      },
-      fat: {
-        percentage: currentMacros.fat,
-        calories: round(totalCalories * (currentMacros.fat / 100)),
-        grams: round((totalCalories * (currentMacros.fat / 100)) / 9),
-      },
-    };
+    return calculateMacros(totalCalories, currentMacros);
   }, [calculatedCalories, calories, useCalculatedCalories, currentMacros]);
 
   const handleMacroChange = (macro, value) => {
@@ -183,7 +142,10 @@ export default function MacroCalculator() {
           Macro Calculator
         </h2>
         <p className="mt-3 text-gray-600 dark:text-gray-300">
-          Calculate your daily macronutrient needs for optimal nutrition
+          Calculate your daily macronutrient distribution
+        </p>
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          Example values shown — enter your own data for personalized results
         </p>
       </motion.div>
 
@@ -425,6 +387,16 @@ export default function MacroCalculator() {
               </p>
             </div>
           )}
+
+          {selectedPreset === "Keto" && (
+            <div className="mt-4 rounded-lg bg-amber-100 p-3 text-center dark:bg-amber-900/30">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                The Keto preset is very low in carbohydrates (5%). This may not
+                be suitable for everyone — consult a healthcare professional
+                before starting a ketogenic diet.
+              </p>
+            </div>
+          )}
         </div>
       </motion.div>
 
@@ -453,6 +425,11 @@ export default function MacroCalculator() {
                 style={{ width: `${macroBreakdown.protein.percentage}%` }}
               ></div>
             </div>
+            {weight.kg && (
+              <p className="mt-3 text-xs text-gray-500 dark:text-gray-400 text-center">
+                ≈ {round(macroBreakdown.protein.grams / weight.kg, 1)} g per kg body weight
+              </p>
+            )}
           </div>
         </motion.div>
 
@@ -509,6 +486,42 @@ export default function MacroCalculator() {
         </motion.div>
       </div>
 
+      {/* Educational explanation */}
+      <div className="mt-6">
+        <ResultExplanation
+          whatItMeans={
+            <>
+              Macronutrients —{" "}
+              <span className="font-semibold">protein</span>,{" "}
+              <span className="font-semibold">carbohydrates</span>, and{" "}
+              <span className="font-semibold">fats</span> — are the three main
+              nutrients your body needs in large amounts. Your daily targets
+              show how many grams of each you should eat based on your total
+              calorie goal and chosen distribution.
+            </>
+          }
+          whyItMatters={
+            <>
+              Protein supports muscle repair and maintenance. Carbohydrates
+              are your body&apos;s main energy source. Fats are essential for
+              hormone function and vitamin absorption. A balanced macro
+              distribution helps support your fitness goals, whether that is
+              losing weight, gaining muscle, or maintaining health.
+            </>
+          }
+          limitations={
+            <>
+              There is no single best macro split for everyone. The right
+              distribution depends on your activity level, training goals,
+              lifestyle, and health.               These are general examples —
+              adjust based on your progress, energy levels, and personal
+              preferences. Whole food sources matter more than exact gram
+              counts.
+            </>
+          }
+        />
+      </div>
+
       {/* Enhanced Interactive Result Card Preview */}
       {shareResult && (
         <div className="mt-8">
@@ -550,7 +563,7 @@ export default function MacroCalculator() {
         className="mt-8 rounded-xl bg-white p-6 shadow-lg ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700"
       >
         <h3 className="mb-6 text-center text-lg font-semibold">
-          Daily Meal Distribution (3 meals)
+          Daily Meal Distribution (Example: 3 Meals)
         </h3>
         <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {["Breakfast", "Lunch", "Dinner"].map((meal) => (
@@ -630,6 +643,65 @@ export default function MacroCalculator() {
           </div>
         </div>
       </motion.div>
+
+      {/* Health Disclaimer */}
+      <div className="mt-6">
+        <HealthDisclaimer
+          universalDisclaimer={
+            <>
+              The results provided are estimates based on general population
+              formulas and the information you have entered. They are
+              intended for general educational and fitness guidance, not as a
+              substitute for professional medical advice. Individual
+              requirements may vary depending on age, body composition,
+              activity level, lifestyle, health status and other personal
+              factors. These values should be treated as a starting reference,
+              not fixed targets. Health Notice: If you have an existing medical
+              condition, metabolic disorder, are taking medication, are
+              pregnant, or have specific dietary or exercise restrictions,
+              consult a qualified healthcare professional before making
+              changes to your diet, hydration or exercise routine. Remember:
+              Your fitness journey is individual. Use these results as a
+              starting point and adjust your approach based on your body&apos;s
+              response and professional guidance.
+            </>
+          }
+          specificCaution={
+            <>
+              Macronutrient estimates are general nutritional references, not
+              individualized dietary prescriptions. People with kidney disease,
+              metabolic disorders or other conditions requiring dietary
+              restrictions should seek guidance from a qualified healthcare
+              professional or registered dietitian.
+            </>
+          }
+        />
+      </div>
+
+      {/* Calculator Next Step */}
+      <CalculatorNextStep
+        heading="What's Next"
+        description={
+          <>
+            Macronutrient distributions are examples; exercise habits,
+            individual goals and preferences are also relevant. Explore your
+            broader fitness picture or learn to train independently.
+          </>
+        }
+        source="calculator-macros"
+        calculatorId="macros"
+        showEnquiry={true}
+        primaryCta={{
+          label: "Explore Your Fitness & Health Snapshot",
+          href: "/transformation",
+        }}
+        secondaryLinks={[
+          {
+            label: "Fitness Education & Independent Training",
+            href: "/services/category/fitness-education-independence",
+          },
+        ]}
+      />
 
       {/* Hidden Shareable Card for Image Generation */}
       {shareResult && (
